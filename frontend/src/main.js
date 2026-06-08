@@ -16,7 +16,7 @@ document.querySelector("#app").innerHTML = `
       <h1>OPN Points Tracker</h1>
       <p class="subtitle">Track your on-chain points on IOPN Testnet.</p>
 
-      <button id="connectBtn">Connect Wallet</button>
+      <button id="connectBtn">Connect OKX or MetaMask Wallet</button>
 
       <div class="info">
         <p><span>Wallet</span><b id="wallet">Not Connected</b></p>
@@ -46,25 +46,50 @@ function randomPoints() {
   return rewards[Math.floor(Math.random() * rewards.length)];
 }
 
-async function switchToIOPN() {
-  await window.ethereum.request({
+function getWalletProvider() {
+  if (window.okxwallet) return window.okxwallet;
+
+  if (window.ethereum && window.ethereum.providers) {
+    const okx = window.ethereum.providers.find(
+      (p) => p.isOkxWallet || p.isOKExWallet
+    );
+
+    if (okx) return okx;
+
+    const metamask = window.ethereum.providers.find(
+      (p) => p.isMetaMask
+    );
+
+    if (metamask) return metamask;
+  }
+
+  if (window.ethereum) return window.ethereum;
+
+  return null;
+}
+
+async function switchToIOPN(walletProvider) {
+  await walletProvider.request({
     method: "wallet_switchEthereumChain",
-    params: [{ chainId: CHAIN_ID }],
+    params: [{ chainId: CHAIN_ID }]
   });
 }
 
 connectBtn.onclick = async () => {
   try {
-    if (!window.ethereum) {
-      alert("Please install MetaMask or OKX Wallet.");
+    const walletProvider = getWalletProvider();
+
+    if (!walletProvider) {
+      alert("Please install OKX Wallet or MetaMask.");
       return;
     }
 
     statusText.innerText = "Connecting wallet...";
 
-    await switchToIOPN();
+    await switchToIOPN(walletProvider);
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.BrowserProvider(walletProvider);
+
     await provider.send("eth_requestAccounts", []);
 
     signer = await provider.getSigner();
