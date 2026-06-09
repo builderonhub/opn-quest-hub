@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import "./style.css";
 
-const CONTRACT_ADDRESS = "0x08eB5dD0323F52699E42d5239b532048afBb9A58";
+const CONTRACT_ADDRESS = "0x40755251D2cf6Ce8FA733AF43C50642eD0314fA1";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -10,7 +10,9 @@ const ABI = [
   "function canCheckIn(address user) view returns(bool)",
 
   "function completeQuest(uint256 questId, uint256 reward)",
-  "function hasCompletedQuest(address user, uint256 questId) view returns(bool)"
+  "function hasCompletedQuest(address user, uint256 questId) view returns(bool)",
+  "function claimNFT(uint256 tier)",
+  "function hasClaimedNFT(address user, uint256 tier) view returns(bool)"
 ];
 
 document.querySelector("#app").innerHTML = `
@@ -40,6 +42,10 @@ document.querySelector("#app").innerHTML = `
     <div class="card quest-card-main">
       <h2>Quest System</h2>
       <div id="quests"></div>
+    </div>
+     <div class="card nft-card-main">
+      <h2>NFT Reward Center</h2>
+      <div id="nftRewards"></div>
     </div>
   </main>
 `;
@@ -234,6 +240,7 @@ connectBtn.onclick = async () => {
     await updateCheckInButton();
     await refreshPoints();
     await renderQuests();
+    await renderNFTRewards();
    
 
     connectBtn.innerText = "Connected";
@@ -243,8 +250,8 @@ connectBtn.onclick = async () => {
 
     statusText.innerText = "Wallet connected successfully.";
   } catch (error) {
-    console.error(error);
-    statusText.innerText = "Connection failed. Please check wallet/network.";
+  console.error("CONNECT ERROR:", error);
+  statusText.innerText = error.message || "Connection failed.";
   }
 };
 
@@ -289,6 +296,7 @@ checkInBtn.onclick = async () => {
     saveTodayCheckIn();
 
     await refreshPoints();
+    await renderNFTRewards();
 
     updateCheckInButton();
 
@@ -306,8 +314,11 @@ const quests = [
   { id: 3, title: "Share Project", reward: 100, url: "https://opn-points-tracker.vercel.app" },
   { id: 4, title: "Submit Feedback", reward: 150, url: "https://github.com/vuanhhai2202/opn-points-tracker/issues" },
 ];
+
 async function renderQuests() {
   const questBox = document.getElementById("quests");
+  if (!questBox || !contract || !userAddress) return;
+
   questBox.innerHTML = "";
 
   for (const quest of quests) {
@@ -317,21 +328,22 @@ async function renderQuests() {
     div.className = "quest-card";
 
     div.innerHTML = `
-     <h3>${quest.title}</h3>
-     <p>Reward: +${quest.reward} points</p>
+      <h3>${quest.title}</h3>
+      <p>Reward: +${quest.reward} points</p>
 
-    <button onclick="window.open('${quest.url}', '_blank')">
-    Do Quest
-     </button>
+      <button onclick="window.open('${quest.url}', '_blank')">
+        Do Quest
+      </button>
 
-     <button ${done ? "disabled" : ""} onclick="completeQuest(${quest.id}, ${quest.reward})">
-    ${done ? "Completed" : "Complete Quest"}
-    </button>
-  `;
+      <button ${done ? "disabled" : ""} onclick="completeQuest(${quest.id}, ${quest.reward})">
+        ${done ? "Completed" : "Complete Quest"}
+      </button>
+    `;
 
     questBox.appendChild(div);
   }
 }
+
 window.completeQuest = async function (questId, reward) {
   try {
     const tx = await contract.completeQuest(questId, reward);
@@ -339,10 +351,61 @@ window.completeQuest = async function (questId, reward) {
 
     await refreshPoints();
     await renderQuests();
+    await renderNFTRewards();
 
-    alert("Quest completed!");
+    statusText.innerText = "Quest completed!";
   } catch (err) {
     console.error(err);
-    alert("Quest failed or already completed.");
+    statusText.innerText = "Quest failed or already completed.";
+  }
+};
+
+const nftRewards = [
+  { tier: 1, title: "Bronze NFT", required: 100 },
+  { tier: 2, title: "Silver NFT", required: 500 },
+  { tier: 3, title: "Gold NFT", required: 1000 },
+];
+
+async function renderNFTRewards() {
+  const box = document.getElementById("nftRewards");
+  if (!box || !contract || !userAddress) return;
+
+  box.innerHTML = "";
+
+  const points = Number(await contract.getPoints(userAddress));
+
+  for (const nft of nftRewards) {
+    const claimed = await contract.hasClaimedNFT(userAddress, nft.tier);
+    const eligible = points >= nft.required;
+
+    const div = document.createElement("div");
+    div.className = "quest-card";
+
+    div.innerHTML = `
+      <h3>${nft.title}</h3>
+      <p>Required: ${nft.required} points</p>
+
+      <button ${claimed || !eligible ? "disabled" : ""} onclick="claimNFT(${nft.tier})">
+        ${claimed ? "Claimed" : eligible ? "Claim NFT" : "Not enough points"}
+      </button>
+    `;
+
+    box.appendChild(div);
+  }
+}
+
+window.claimNFT = async function (tier) {
+  try {
+    statusText.innerText = "Claiming NFT... Waiting for wallet signature.";
+
+    const tx = await contract.claimNFT(tier);
+    await tx.wait();
+
+    await renderNFTRewards();
+
+    statusText.innerText = "NFT claimed successfully!";
+  } catch (err) {
+    console.error(err);
+    statusText.innerText = "NFT claim failed or rejected.";
   }
 };
