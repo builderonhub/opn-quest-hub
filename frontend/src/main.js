@@ -22,6 +22,7 @@ document.querySelector("#app").innerHTML = `
         <p><span>Wallet</span><b id="wallet">Not Connected</b></p>
         <p><span>Points</span><b id="points">0</b></p>
         <p><span>Badge</span><b id="userBadge">No Badge</b></p>
+        <p><span>Next Check-In</span><b id="countdown">Connect Wallet</b></p>
         <p><span>Contract</span><b class="mono">${CONTRACT_ADDRESS}</b></p>
       </div>
 
@@ -37,11 +38,13 @@ const checkInBtn = document.getElementById("checkInBtn");
 const walletText = document.getElementById("wallet");
 const pointsText = document.getElementById("points");
 const userBadge = document.getElementById("userBadge");
+const countdownText = document.getElementById("countdown");
 const statusText = document.getElementById("status");
 
 let signer;
 let contract;
 let userAddress;
+let countdownTimer;
 
 function randomPoints() {
   const rewards = [10, 20, 30, 40, 50];
@@ -55,24 +58,97 @@ function getBadge(points) {
   return "New Explorer";
 }
 
-function getTodayKey() {
-  const today = new Date().toISOString().slice(0, 10);
-  return `opn_last_checkin_${userAddress}_${today}`;
+function getVietnamDateKey() {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vietnamTime = new Date(utc + 7 * 60 * 60 * 1000);
+
+  const year = vietnamTime.getFullYear();
+  const month = String(vietnamTime.getMonth() + 1).padStart(2, "0");
+  const day = String(vietnamTime.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getCheckInKey() {
+  return `opn_checkin_${userAddress}_${getVietnamDateKey()}`;
 }
 
 function hasCheckedInToday() {
   if (!userAddress) return false;
-  return localStorage.getItem(getTodayKey()) === "true";
+  return localStorage.getItem(getCheckInKey()) === "true";
 }
 
 function saveTodayCheckIn() {
-  localStorage.setItem(getTodayKey(), "true");
+  localStorage.setItem(getCheckInKey(), "true");
+}
+
+function getNextUTCMidnight() {
+  const now = new Date();
+
+  const nextUtcMidnight = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      0,
+      0,
+      0
+    )
+  );
+
+  return nextUtcMidnight;
+}
+
+function formatTime(ms) {
+  if (ms <= 0) return "00:00:00";
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}`;
+}
+
+function startCountdown() {
+  clearInterval(countdownTimer);
+
+  countdownTimer = setInterval(() => {
+    if (!userAddress) {
+      countdownText.innerText = "Connect Wallet";
+      return;
+    }
+
+    if (!hasCheckedInToday()) {
+      countdownText.innerText = "Available Now";
+      checkInBtn.disabled = false;
+      checkInBtn.innerText = "Daily Check-In";
+      return;
+    }
+
+    const nextTime = getNextVietnamMidnight();
+    const remaining = nextTime.getTime() - Date.now();
+
+    if (remaining <= 0) {
+      countdownText.innerText = "Available Now";
+      checkInBtn.disabled = false;
+      checkInBtn.innerText = "Daily Check-In";
+      clearInterval(countdownTimer);
+      return;
+    }
+
+    countdownText.innerText = formatTime(remaining);
+    checkInBtn.disabled = true;
+    checkInBtn.innerText = "Already Checked-In Today";
+  }, 1000);
 }
 
 function updateCheckInButton() {
   if (!userAddress) {
     checkInBtn.disabled = false;
     checkInBtn.innerText = "Daily Check-In";
+    countdownText.innerText = "Connect Wallet";
     return;
   }
 
@@ -82,7 +158,10 @@ function updateCheckInButton() {
   } else {
     checkInBtn.disabled = false;
     checkInBtn.innerText = "Daily Check-In";
+    countdownText.innerText = "Available Now";
   }
+
+  startCountdown();
 }
 
 function getWalletProvider() {
@@ -94,9 +173,7 @@ function getWalletProvider() {
     );
     if (okx) return okx;
 
-    const metamask = window.ethereum.providers.find(
-      (p) => p.isMetaMask
-    );
+    const metamask = window.ethereum.providers.find((p) => p.isMetaMask);
     if (metamask) return metamask;
   }
 
@@ -134,7 +211,6 @@ connectBtn.onclick = async () => {
     await switchToIOPN(walletProvider);
 
     const provider = new ethers.BrowserProvider(walletProvider);
-
     await provider.send("eth_requestAccounts", []);
 
     signer = await provider.getSigner();
