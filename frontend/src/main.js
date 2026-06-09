@@ -14,17 +14,18 @@ document.querySelector("#app").innerHTML = `
     <div class="card">
       <p class="badge">IOPN Testnet • Chain ID 984</p>
       <h1>OPN Points Tracker</h1>
-      <p class="subtitle">Track your on-chain points on IOPN Testnet.</p>
+      <p class="subtitle">Daily check-in and earn on-chain OPN points.</p>
 
       <button id="connectBtn">Connect OKX or MetaMask Wallet</button>
 
       <div class="info">
         <p><span>Wallet</span><b id="wallet">Not Connected</b></p>
         <p><span>Points</span><b id="points">0</b></p>
+        <p><span>Badge</span><b id="userBadge">No Badge</b></p>
         <p><span>Contract</span><b class="mono">${CONTRACT_ADDRESS}</b></p>
       </div>
 
-      <button id="addBtn">Random Add Points</button>
+      <button id="checkInBtn">Daily Check-In</button>
 
       <p id="status"></p>
     </div>
@@ -32,9 +33,10 @@ document.querySelector("#app").innerHTML = `
 `;
 
 const connectBtn = document.getElementById("connectBtn");
-const addBtn = document.getElementById("addBtn");
+const checkInBtn = document.getElementById("checkInBtn");
 const walletText = document.getElementById("wallet");
 const pointsText = document.getElementById("points");
+const userBadge = document.getElementById("userBadge");
 const statusText = document.getElementById("status");
 
 let signer;
@@ -46,6 +48,43 @@ function randomPoints() {
   return rewards[Math.floor(Math.random() * rewards.length)];
 }
 
+function getBadge(points) {
+  if (points >= 1000) return "🥇 Gold Member";
+  if (points >= 500) return "🥈 Silver Member";
+  if (points >= 100) return "🥉 Bronze Member";
+  return "New Explorer";
+}
+
+function getTodayKey() {
+  const today = new Date().toISOString().slice(0, 10);
+  return `opn_last_checkin_${userAddress}_${today}`;
+}
+
+function hasCheckedInToday() {
+  if (!userAddress) return false;
+  return localStorage.getItem(getTodayKey()) === "true";
+}
+
+function saveTodayCheckIn() {
+  localStorage.setItem(getTodayKey(), "true");
+}
+
+function updateCheckInButton() {
+  if (!userAddress) {
+    checkInBtn.disabled = false;
+    checkInBtn.innerText = "Daily Check-In";
+    return;
+  }
+
+  if (hasCheckedInToday()) {
+    checkInBtn.disabled = true;
+    checkInBtn.innerText = "Already Checked-In Today";
+  } else {
+    checkInBtn.disabled = false;
+    checkInBtn.innerText = "Daily Check-In";
+  }
+}
+
 function getWalletProvider() {
   if (window.okxwallet) return window.okxwallet;
 
@@ -53,13 +92,11 @@ function getWalletProvider() {
     const okx = window.ethereum.providers.find(
       (p) => p.isOkxWallet || p.isOKExWallet
     );
-
     if (okx) return okx;
 
     const metamask = window.ethereum.providers.find(
       (p) => p.isMetaMask
     );
-
     if (metamask) return metamask;
   }
 
@@ -73,6 +110,14 @@ async function switchToIOPN(walletProvider) {
     method: "wallet_switchEthereumChain",
     params: [{ chainId: CHAIN_ID }]
   });
+}
+
+async function refreshPoints() {
+  const points = await contract.getPoints(userAddress);
+  const pointNumber = Number(points);
+
+  pointsText.innerText = pointNumber.toString();
+  userBadge.innerText = getBadge(pointNumber);
 }
 
 connectBtn.onclick = async () => {
@@ -100,11 +145,12 @@ connectBtn.onclick = async () => {
     walletText.innerText =
       userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
 
-    const points = await contract.getPoints(userAddress);
-    pointsText.innerText = points.toString();
+    await refreshPoints();
 
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
+
+    updateCheckInButton();
 
     statusText.innerText = "Wallet connected successfully.";
   } catch (error) {
@@ -113,37 +159,45 @@ connectBtn.onclick = async () => {
   }
 };
 
-addBtn.onclick = async () => {
+checkInBtn.onclick = async () => {
   try {
-    if (!contract) {
+    if (!contract || !userAddress) {
       alert("Connect wallet first.");
+      return;
+    }
+
+    if (hasCheckedInToday()) {
+      statusText.innerText = "You have already checked in today.";
+      updateCheckInButton();
       return;
     }
 
     const reward = randomPoints();
 
-    addBtn.innerText = "Rolling reward...";
-    addBtn.disabled = true;
+    checkInBtn.disabled = true;
+    checkInBtn.innerText = "Checking in...";
 
-    statusText.innerText = `You rolled ${reward} points. Waiting for wallet signature...`;
+    statusText.innerText =
+      `Daily reward: +${reward} points. Waiting for wallet signature...`;
 
     const tx = await contract.addPoints(reward);
 
-    statusText.innerText = "Transaction sent: " + tx.hash.slice(0, 18) + "...";
+    statusText.innerText =
+      "Transaction sent: " + tx.hash.slice(0, 18) + "...";
 
     await tx.wait();
 
-    const points = await contract.getPoints(userAddress);
-    pointsText.innerText = points.toString();
+    saveTodayCheckIn();
 
-    statusText.innerText = `Success! +${reward} points added on-chain.`;
+    await refreshPoints();
 
-    addBtn.innerText = "Random Add Points";
-    addBtn.disabled = false;
+    updateCheckInButton();
+
+    statusText.innerText =
+      `Check-in successful! You earned +${reward} points.`;
   } catch (error) {
     console.error(error);
-    statusText.innerText = "Transaction failed or rejected.";
-    addBtn.innerText = "Random Add Points";
-    addBtn.disabled = false;
+    statusText.innerText = "Check-in failed or rejected.";
+    updateCheckInButton();
   }
 };
