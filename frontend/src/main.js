@@ -1,12 +1,13 @@
 import { ethers } from "ethers";
 import "./style.css";
 
-const CONTRACT_ADDRESS = "0xD1950036C186CA9F68293e616e0703026269114C";
+const CONTRACT_ADDRESS = "0xA3a83f42Cae385C9Db4d174b43756d9999d0c9a3";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
-  "function addPoints(uint256 amount) public",
-  "function getPoints(address user) public view returns(uint256)"
+  "function dailyCheckIn(uint256 amount)",
+  "function getPoints(address user) view returns(uint256)",
+  "function canCheckIn(address user) view returns(bool)"
 ];
 
 document.querySelector("#app").innerHTML = `
@@ -144,24 +145,23 @@ function startCountdown() {
   }, 1000);
 }
 
-function updateCheckInButton() {
-  if (!userAddress) {
-    checkInBtn.disabled = false;
-    checkInBtn.innerText = "Daily Check-In";
-    countdownText.innerText = "Connect Wallet";
-    return;
-  }
+async function updateCheckInButton() {
+  if (!contract || !userAddress) return;
 
-  if (hasCheckedInToday()) {
-    checkInBtn.disabled = true;
-    checkInBtn.innerText = "Already Checked-In Today";
-  } else {
-    checkInBtn.disabled = false;
-    checkInBtn.innerText = "Daily Check-In";
-    countdownText.innerText = "Available Now";
-  }
+  try {
+    const canCheck =
+      await contract.canCheckIn(userAddress);
 
-  startCountdown();
+    if (canCheck) {
+      checkInBtn.disabled = false;
+      checkInBtn.innerText = "Daily Check-In";
+    } else {
+      checkInBtn.disabled = true;
+      checkInBtn.innerText = "Already Checked-In Today";
+    }
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 function getWalletProvider() {
@@ -221,7 +221,7 @@ connectBtn.onclick = async () => {
     walletText.innerText =
       userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
 
-    await refreshPoints();
+    await updateCheckInButton();
 
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
@@ -256,7 +256,17 @@ checkInBtn.onclick = async () => {
     statusText.innerText =
       `Daily reward: +${reward} points. Waiting for wallet signature...`;
 
-    const tx = await contract.addPoints(reward);
+    const canCheck = await contract.canCheckIn(userAddress);
+
+    if (!canCheck) {
+    statusText.innerText =
+    "Already checked in today (verified on-chain).";
+
+    updateCheckInButton();
+     return;
+    }
+
+    const tx = await contract.dailyCheckIn(reward);
 
     statusText.innerText =
       "Transaction sent: " + tx.hash.slice(0, 18) + "...";
