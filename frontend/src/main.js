@@ -13,7 +13,8 @@ const ABI = [
   "function hasCompletedQuest(address user, uint256 questId) view returns(bool)",
   "function claimNFT(uint256 tier)",
   "function hasClaimedNFT(address user, uint256 tier) view returns(bool)",
-  "function tokenURI(uint256 tokenId) public view returns (string memory)"
+  "function tokenURI(uint256 tokenId) public view returns (string memory)",
+  "function lastCheckInDay(address user) view returns (uint256)"
 ];
 
 document.querySelector("#app").innerHTML = `
@@ -30,7 +31,7 @@ document.querySelector("#app").innerHTML = `
         <p><span>Wallet</span><b id="wallet">Not Connected</b></p>
         <p><span>Points</span><b id="points">0</b></p>
         <p><span>Badge</span><b id="userBadge">No Badge</b></p>
-        <p><span>Next Check-In</span><b id="countdown">Connect Wallet</b></p>
+        <p><span>Next Check-In</span><b id="countdown">Loading...</b></p>
         <p><span>Contract</span><b class="mono">${CONTRACT_ADDRESS}</b></p>
       </div>
 
@@ -39,15 +40,20 @@ document.querySelector("#app").innerHTML = `
       <p id="status"></p>
 
     </div>
-
-    <div class="card quest-card-main">
-      <h2>Quest System</h2>
-      <div id="quests"></div>
-    </div>
      <div class="card nft-card-main">
       <h2>NFT Reward Center</h2>
       <div id="nftRewards"></div>
     </div>
+    <div class="card quest-card-main">
+      <h2>Quest System</h2>
+      <div id="quests"></div>
+    </div>
+
+    <div class="card quest-card-main">
+    <h2>On-chain Activity</h2>
+    <div id="onchainQuests"></div>
+    </div>
+
   </main>
 `;
 
@@ -58,7 +64,7 @@ const pointsText = document.getElementById("points");
 const userBadge = document.getElementById("userBadge");
 const countdownText = document.getElementById("countdown");
 const statusText = document.getElementById("status");
-
+const openedQuests = {};
 let signer;
 let contract;
 let userAddress;
@@ -129,24 +135,36 @@ function formatTime(ms) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function startCountdown() {
+async function startCountdown() {
   clearInterval(countdownTimer);
 
-  countdownTimer = setInterval(() => {
-    if (!userAddress) {
-      countdownText.innerText = "Connect Wallet";
-      return;
-    }
+  if (!userAddress || !contract) {
+    countdownText.innerText = "Connect Wallet";
+    return;
+  }
 
-    if (!hasCheckedInToday()) {
-      countdownText.innerText = "Available Now";
-      checkInBtn.disabled = false;
-      checkInBtn.innerText = "Daily Check-In";
-      return;
-    }
+  let canCheck = false;
 
-    const nextTime = getNextUTCMidnight();
-    const remaining = nextTime.getTime() - Date.now();
+  try {
+    canCheck = await contract.canCheckIn(userAddress);
+  } catch (err) {
+    console.error("canCheckIn error:", err);
+  }
+
+  if (canCheck) {
+    countdownText.innerText = "Available Now";
+    checkInBtn.disabled = false;
+    checkInBtn.innerText = "Daily Check-In";
+    return;
+  }
+
+  function updateCountdown() {
+    const now = new Date();
+    const nextUTC = new Date(now);
+
+    nextUTC.setUTCHours(24, 0, 0, 0);
+
+    const remaining = nextUTC.getTime() - now.getTime();
 
     if (remaining <= 0) {
       countdownText.innerText = "Available Now";
@@ -159,7 +177,10 @@ function startCountdown() {
     countdownText.innerText = formatTime(remaining);
     checkInBtn.disabled = true;
     checkInBtn.innerText = "Already Checked-In Today";
-  }, 1000);
+  }
+
+  updateCountdown();
+  countdownTimer = setInterval(updateCountdown, 1000);
 }
 
 async function updateCheckInButton() {
@@ -241,7 +262,9 @@ connectBtn.onclick = async () => {
     await updateCheckInButton();
     await refreshPoints();
     await renderQuests();
+    await renderOnchainQuests();
     await renderNFTRewards();
+    await startCountdown();
    
 
     connectBtn.innerText = "Connected";
@@ -308,6 +331,9 @@ checkInBtn.onclick = async () => {
     statusText.innerText = "Check-in failed or rejected.";
     updateCheckInButton();
   }
+  await refreshPoints();
+  await updateCheckInButton();
+  await startCountdown();
 };
 const quests = [
   { id: 1, title: "Follow IOPN", reward: 50, url: "https://x.com/IOPn_io" },
@@ -315,7 +341,15 @@ const quests = [
   { id: 3, title: "Share Project", reward: 100, url: "https://opn-points-tracker.vercel.app" },
   { id: 4, title: "Submit Feedback", reward: 150, url: "https://github.com/vuanhhai2202/opn-points-tracker/issues" },
 ];
-
+const ONCHAIN_QUESTS = [
+  { id: 101, tx: 1, reward: 1, title: "1 Transaction" },
+  { id: 102, tx: 10, reward: 5, title: "10 Transactions" },
+  { id: 103, tx: 50, reward: 15, title: "50 Transactions" },
+  { id: 104, tx: 100, reward: 30, title: "100 Transactions" },
+  { id: 105, tx: 500, reward: 75, title: "500 Transactions" },
+  { id: 106, tx: 1000, reward: 150, title: "1000 Transactions" },
+  { id: 107, tx: 2000, reward: 300, title: "2000 Transactions" }
+];
 async function renderQuests() {
   const questBox = document.getElementById("quests");
   if (!questBox || !contract || !userAddress) return;
@@ -332,11 +366,11 @@ async function renderQuests() {
       <h3>${quest.title}</h3>
       <p>Reward: +${quest.reward} points</p>
 
-      <button onclick="window.open('${quest.url}', '_blank')">
+      <button onclick="doQuest(${quest.id}, '${quest.url}')">
         Do Quest
       </button>
 
-      <button ${done ? "disabled" : ""} onclick="completeQuest(${quest.id}, ${quest.reward})">
+      <button id="completeQuestBtn${quest.id}" ${done ? "disabled" : "disabled"} onclick="completeQuest(${quest.id}, ${quest.reward})">
         ${done ? "Completed" : "Complete Quest"}
       </button>
     `;
@@ -344,8 +378,77 @@ async function renderQuests() {
     questBox.appendChild(div);
   }
 }
+window.doQuest = function (questId, url) {
+  openedQuests[questId] = true;
+  window.open(url, "_blank");
+
+  const btn = document.getElementById(`completeQuestBtn${questId}`);
+  if (btn) {
+    btn.disabled = false;
+  }
+};
+async function renderOnchainQuests() {
+  const box = document.getElementById("onchainQuests");
+  if (!box) return;
+
+  box.innerHTML = "";
+
+  if (!contract || !userAddress) {
+    box.innerHTML = `<p>Please connect wallet.</p>`;
+    return;
+  }
+
+  const walletProvider = getWalletProvider();
+  const provider = new ethers.BrowserProvider(walletProvider);
+  const txCount = await provider.getTransactionCount(userAddress);
+
+  for (const q of ONCHAIN_QUESTS) {
+    const completed = await contract.hasCompletedQuest(userAddress, q.id);
+    const eligible = txCount >= q.tx;
+
+    const div = document.createElement("div");
+    div.className = "quest-item";
+
+    div.innerHTML = `
+      <div class="onchain-card">
+        <h3>${q.title}</h3>
+        <p>Reward: +${q.reward} points</p>
+
+        <button ${completed || !eligible ? "disabled" : ""}>
+          ${completed ? "Claimed" : eligible ? "Claim Points" : "Locked"}
+        </button>
+      </div>
+    `;
+
+    const btn = div.querySelector("button");
+
+    btn.onclick = async () => {
+      try {
+        statusText.innerText = "Claiming on-chain activity reward...";
+
+        const tx = await contract.completeQuest(q.id, q.reward);
+        await tx.wait();
+
+        statusText.innerText = `Claimed +${q.reward} points!`;
+
+        await refreshPoints();
+        await renderOnchainQuests();
+        await renderNFTRewards();
+      } catch (err) {
+        console.error(err);
+        statusText.innerText = "Claim failed or rejected.";
+      }
+    };
+
+    box.appendChild(div);
+  }
+}
 
 window.completeQuest = async function (questId, reward) {
+  if (!openedQuests[questId]) {
+  statusText.innerText = "Please click Do Quest first.";
+  return;
+}
   try {
     const tx = await contract.completeQuest(questId, reward);
     await tx.wait();
@@ -409,4 +512,19 @@ window.claimNFT = async function (tier) {
     console.error(err);
     statusText.innerText = "NFT claim failed or rejected.";
   }
+  const ONCHAIN_QUESTS = [
+  { id: 101, tx: 1, reward: 1, title: "Make 1 On-chain Transaction" },
+  { id: 102, tx: 10, reward: 5, title: "Make 10 On-chain Transactions" },
+  { id: 103, tx: 50, reward: 15, title: "Make 50 On-chain Transactions" },
+  { id: 104, tx: 100, reward: 30, title: "Make 100 On-chain Transactions" },
+  { id: 105, tx: 500, reward: 75, title: "Make 500 On-chain Transactions" },
+  { id: 106, tx: 1000, reward: 150, title: "Make 1000 On-chain Transactions" },
+  { id: 107, tx: 2000, reward: 300, title: "Make 2000 On-chain Transactions" }
+];
+async function getUserTxCount() {
+  const walletProvider = getWalletProvider();
+  const provider = new ethers.BrowserProvider(walletProvider);
+
+  return await provider.getTransactionCount(userAddress);
+}
 };

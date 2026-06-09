@@ -144,3 +144,24 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+.onchain-card {
+  padding: 18px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.onchain-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.onchain-card p {
+  margin: 0 0 16px;
+  opacity: 0.8;
+}
+
+.onchain-card button {
+  width: 100%;
+}
