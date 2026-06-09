@@ -58,29 +58,29 @@ function getBadge(points) {
   return "New Explorer";
 }
 
-function getVietnamDateKey() {
+function getUTCDateKey() {
   const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const vietnamTime = new Date(utc + 7 * 60 * 60 * 1000);
 
-  const year = vietnamTime.getFullYear();
-  const month = String(vietnamTime.getMonth() + 1).padStart(2, "0");
-  const day = String(vietnamTime.getDate()).padStart(2, "0");
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
 function getCheckInKey() {
-  return `opn_checkin_${userAddress}_${getVietnamDateKey()}`;
-}
-
-function hasCheckedInToday() {
-  if (!userAddress) return false;
-  return localStorage.getItem(getCheckInKey()) === "true";
+  const wallet = userAddress.toLowerCase();
+  return `opn_daily_checkin_${wallet}_${getUTCDateKey()}`;
 }
 
 function saveTodayCheckIn() {
-  localStorage.setItem(getCheckInKey(), "true");
+  localStorage.setItem(getCheckInKey(), "checked");
+}
+
+
+function hasCheckedInToday() {
+  if (!userAddress) return false;
+  return localStorage.getItem(getCheckInKey()) === "checked";
 }
 
 function getNextUTCMidnight() {
@@ -127,7 +127,7 @@ function startCountdown() {
       return;
     }
 
-    const nextTime = getNextVietnamMidnight();
+    const nextTime = getNextUTCMidnight();
     const remaining = nextTime.getTime() - Date.now();
 
     if (remaining <= 0) {
