@@ -14,7 +14,7 @@ https://opn-points-tracker.vercel.app
 
 GitHub:
 
-https://github.com/vuanhhai2202/opn-points-tracker
+https://github.com/builderonhub/opn-quest-hub
 
 ---
 
