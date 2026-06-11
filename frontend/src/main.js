@@ -524,11 +524,26 @@ checkInBtn.onclick = async () => {
   await updateCheckInButton();
   await startCountdown();
 };
+
+const shareProjectText =
+  "🚀 I am exploring OPN Quest Hub — a Web3 ecosystem combining Quests, NFTs, OPN Staking and OQH DeFi Rewards.\n\n" +
+  "✅ Complete quests\n" +
+  "✅ Earn points\n" +
+  "✅ Mint NFT badges\n" +
+  "✅ Stake OPN & OQH\n" +
+  "✅ Unlock boosted rewards\n\n" +
+  "Try it here:\n" +
+  "https://opn-points-tracker.vercel.app\n\n" +
+  "#OPN #Web3 #NFT #DeFi";
+
+const shareProjectUrl =
+  "https://x.com/intent/post?text=" + encodeURIComponent(shareProjectText);
+
 const quests = [
   { id: 1, title: "Follow IOPN", reward: 50, url: "https://x.com/IOPn_io" },
   { id: 2, title: "Join Discord", reward: 50, url: "https://discord.com/invite/iopn" },
-  { id: 3, title: "Share Project", reward: 100, url: "https://opn-points-tracker.vercel.app" },
-  { id: 4, title: "Submit Feedback", reward: 150, url: "https://github.com/builderonhub/opn-quest-hub/issues" },
+  { id: 3, title: "Share Project on X", reward: 100, url: shareProjectUrl },
+  { id: 4, title: "Submit Feedback", reward: 150, url: "https://x.com/compose/post" },
 ];
 const ONCHAIN_QUESTS = [
   { id: 101, tx: 1, reward: 1, title: "1 Transaction" },
