@@ -528,7 +528,7 @@ const quests = [
   { id: 1, title: "Follow IOPN", reward: 50, url: "https://x.com/IOPn_io" },
   { id: 2, title: "Join Discord", reward: 50, url: "https://discord.com/invite/iopn" },
   { id: 3, title: "Share Project", reward: 100, url: "https://opn-points-tracker.vercel.app" },
-  { id: 4, title: "Submit Feedback", reward: 150, url: "https://github.com/vuanhhai2202/opn-points-tracker/issues" },
+  { id: 4, title: "Submit Feedback", reward: 150, url: "https://github.com/builderonhub/opn-quest-hub/issues" },
 ];
 const ONCHAIN_QUESTS = [
   { id: 101, tx: 1, reward: 1, title: "1 Transaction" },
