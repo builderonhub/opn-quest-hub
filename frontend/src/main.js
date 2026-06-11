@@ -1066,6 +1066,23 @@ function openOPNFaucet() {
   window.open("https://faucet.iopn.tech/", "_blank");
 }
 
+async function claimNFTReward(tier) {
+  console.log("Claim NFT clicked:", tier);
+
+  try {
+    const tx = await contract.claimNFT(tier);
+    await tx.wait();
+
+    console.log("NFT claimed");
+
+    await refreshPoints();
+    await renderNFTRewards();
+    await renderDeFiVault();
+  } catch (err) {
+    console.error("Claim NFT failed", err);
+  }
+}
+
 window.openOPNFaucet = openOPNFaucet;
 window.stakeOPNT = stakeOPNT;
 window.claimOPNStakingPoints = claimOPNStakingPoints;
