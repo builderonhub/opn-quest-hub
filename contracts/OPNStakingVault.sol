@@ -15,7 +15,7 @@ contract OPNStakingVault {
     mapping(address => uint256) public stakeStartTime;
     mapping(address => uint256) public rewardClaimed;
 
-    uint256 public constant REWARD_RATE_PER_HOUR_BPS = 1; // 0.01% per hour
+    uint256 public constant REWARD_RATE_PER_HOUR_BPS = 20; // 0.2% per hour
     uint256 public constant BPS_DENOMINATOR = 10000;
 
     event Staked(address indexed user, uint256 amount);
@@ -65,13 +65,23 @@ contract OPNStakingVault {
     }
 
     function pendingReward(address user) public view returns (uint256) {
-        uint256 hoursStaked = stakingHours(user);
+        if (stakedAmount[user] == 0 || stakeStartTime[user] == 0) {
+            return 0;
+        }
+
+        uint256 minutesStaked =
+            (block.timestamp - stakeStartTime[user]) / 1 minutes;
 
         uint256 baseReward =
-            (stakedAmount[user] * hoursStaked * REWARD_RATE_PER_HOUR_BPS) / BPS_DENOMINATOR;
+            (stakedAmount[user] *
+                minutesStaked *
+                REWARD_RATE_PER_HOUR_BPS) /
+            (BPS_DENOMINATOR * 60);
 
         uint256 boostBps = getNFTBoostBps(user);
-        uint256 boostedReward = baseReward + ((baseReward * boostBps) / BPS_DENOMINATOR);
+
+        uint256 boostedReward =
+            baseReward + ((baseReward * boostBps) / BPS_DENOMINATOR);
 
         if (boostedReward <= rewardClaimed[user]) {
             return 0;

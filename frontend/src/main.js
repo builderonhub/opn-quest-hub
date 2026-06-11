@@ -3,7 +3,7 @@ import "./style.css";
 
 const CONTRACT_ADDRESS = "0x45C277439298AAF0952bC92236C78Aa138313a51";
 const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
-const OPN_VAULT_ADDRESS = "0x8545c959F7D0678d4b2dB332b852932ad3E9E51A";
+const OPN_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x48D576bD6Ea0D311f7274DeC70219de228710770";
 const CHAIN_ID = "0x3d8";
@@ -44,7 +44,8 @@ const OPN_STAKING_ABI = [
   "function pendingPoints(address user) view returns(uint256)",
   "function stakedAmount(address user) view returns(uint256)",
   "function totalUserPoints(address user) view returns(uint256)",
-  "function totalStaked() view returns(uint256)"
+  "function totalStaked() view returns(uint256)",
+  "function claimedPoints(address user) view returns(uint256)",
 ];
 
 const ERC20_ABI = [
@@ -132,38 +133,45 @@ document.querySelector("#app").innerHTML = `
         Withdraw
       </button>
     </div>
+  <div class="card">
 
+      <div class="card faucet-card">
+      <h2>OPN Faucet</h2>
+      <p>Get free testnet OPN for gas and native staking.</p>
+      <p><strong>External Faucet</strong></p>
+      <button onclick="openOPNFaucet()">
+        Get Testnet OPN
+      </button>
+    </div>
+
+      <h2>OPN Stake → Earn Points</h2>
+      <div class="opn-total-box">
+        <div class="opn-total-label">TOTAL STAKING OPN</div>
+        <div class="opn-total-value">
+          <span id="opntTotalStaked">0</span> OPN
+        </div>
+      </div>
+
+      <p>My OPN Balance: <span id="opntBalance">0</span></p>
+      <p>My Staked OPN: <span id="opntStaked">0</span></p>
+      <p>Pending Points: <span id="opntPendingPoints">0</span></p>
+      <input id="opnStakeAmount" class="stake-input" placeholder="Amount OPN" />
+      <button onclick="stakeOPNT()">Stake OPN</button>
+      <button onclick="claimOPNStakingPoints()">Claim Points</button>
+      <button onclick="withdrawOPNT()">Withdraw OPN</button>
+    </div>
+    
     <div class="card quest-card-main">
       <h2>Quest System</h2>
       <div id="quests"></div>
     </div>
-
 
     <div class="card quest-card-main">
     <h2>On-chain Activity</h2>
     <div id="onchainQuests"></div>
     </div>
 
-      <div class="card">
-    <h2>OPN Stake → Earn Points</h2>
-
-    <div class="opn-total-box">
-      <div class="opn-total-label">TOTAL STAKING OPN</div>
-      <div class="opn-total-value">
-        <span id="opntTotalStaked">0</span> OPN
-      </div>
-    </div>
-
-    <p>My OPN Balance: <span id="opntBalance">0</span></p>
-    <p>My Staked OPN: <span id="opntStaked">0</span></p>
-    <p>Pending Points: <span id="opntPendingPoints">0</span></p>
-
-    <input id="opnStakeAmount" class="stake-input" placeholder="Amount OPN" />
-
-    <button onclick="stakeOPNT()">Stake OPN</button>
-    <button onclick="claimOPNStakingPoints()">Claim Points</button>
-    <button onclick="withdrawOPNT()">Withdraw OPN</button>
-  </div>
+     
 
   </main>
 `;
@@ -335,12 +343,35 @@ function getWalletProvider() {
   return null;
 }
 
-async function switchToIOPN(walletProvider) {
-  await walletProvider.request({
-    method: "wallet_switchEthereumChain",
-    params: [{ chainId: CHAIN_ID }]
-  });
-}
+  async function switchToIOPN(walletProvider) {
+    try {
+      await walletProvider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: CHAIN_ID }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        await walletProvider.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0x3d8",
+              chainName: "IOPN Testnet",
+              nativeCurrency: {
+                name: "OPN",
+                symbol: "OPN",
+                decimals: 18,
+              },
+              rpcUrls: ["https://testnet-rpc2.iopn.tech"],
+              blockExplorerUrls: ["https://testnet.iopn.tech"],
+            },
+          ],
+        });
+      } else {
+        throw switchError;
+      }
+    }
+  }
 
 async function refreshPoints() {
   const questPoints = await contract.getPoints(userAddress);
@@ -350,7 +381,7 @@ async function refreshPoints() {
   try {
     const { opnStaking } = await getDeFiContracts();
     stakingPoints = Number(
-      await opnStaking.totalUserPoints(userAddress)
+      await opnStaking.claimedPoints(userAddress)
     );
   } catch (err) {
     console.error("Load staking points failed", err);
@@ -634,7 +665,20 @@ async function renderNFTRewards() {
 
   box.innerHTML = "";
 
-  const points = Number(await contract.getPoints(userAddress));
+    const questPoints = Number(await contract.getPoints(userAddress));
+
+  let stakingPoints = 0;
+
+  try {
+    const { opnStaking } = await getDeFiContracts();
+    stakingPoints = Number(
+      await opnStaking.claimedPoints(userAddress)
+    );
+  } catch (err) {
+    console.error("Load claimed staking points failed", err);
+  }
+
+  const points = questPoints + stakingPoints;
   const imageMap = {
     1: "/bronze.png",
     2: "/silver.png",
@@ -672,7 +716,12 @@ async function renderNFTRewards() {
       />
     </div>
 
-    <button>${buttonText}</button>
+        <button
+      ${buttonDisabled}
+      onclick="claimNFTReward(${nft.tier})"
+    >
+      ${buttonText}
+    </button>
   `;
 
     box.appendChild(div);
@@ -1013,7 +1062,12 @@ async function renderOPNStaking() {
   document.getElementById("opntTotalStaked").innerText =
     Number(ethers.formatEther(totalStaked)).toFixed(4);
 } 
+function openOPNFaucet() {
+  window.open("https://faucet.iopn.tech/", "_blank");
+}
 
+window.openOPNFaucet = openOPNFaucet;
 window.stakeOPNT = stakeOPNT;
 window.claimOPNStakingPoints = claimOPNStakingPoints;
 window.withdrawOPNT = withdrawOPNT;
+window.claimNFTReward = claimNFTReward;
