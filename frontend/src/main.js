@@ -593,13 +593,17 @@ const ONCHAIN_QUESTS = [
   { id: 106, tx: 1000, reward: 150, title: "1000 Transactions" },
   { id: 107, tx: 2000, reward: 300, title: "2000 Transactions" }
 ];
+
+let isRenderingQuests = false;
 async function renderQuests() {
-  console.log("renderQuests called");
-  console.log(
-  document.querySelectorAll("#quests").length
-);
+  if (isRenderingQuests) return;
+  isRenderingQuests = true;
+
   const questBox = document.getElementById("quests");
-  if (!questBox || !contract || !userAddress) return;
+  if (!questBox || !contract || !userAddress) {
+    isRenderingQuests = false;
+    return;
+  }
 
   questBox.innerHTML = "";
   const uniqueQuests = quests.filter(
@@ -706,12 +710,14 @@ window.completeQuest = async function (questId, reward) {
 
     await refreshPoints();
     await renderLeaderboard();
+    await renderQuests();
     await renderNFTRewards();
 
     statusText.innerText = "Quest completed!";
-
+    
   } catch (err) {
     console.error(err);
+    await renderQuests();
     statusText.innerText = "Quest failed or already completed.";
   }
 };
