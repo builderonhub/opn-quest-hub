@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockOPNToken is ERC20 {
+contract OQHToken is ERC20 {
     mapping(address => uint256) public lastClaimDay;
     constructor() ERC20("OPN Quest Hub Token", "OQH") {}
 

@@ -1,8 +1,10 @@
 # OPN Quest Hub
 
-A Web3 gamified quest platform built on IOPN Testnet.
+A gamified Web3 engagement platform built on the IOPN Testnet.
 
-Users can complete quests, earn on-chain points, unlock badges, claim NFTs, and participate in ecosystem activities.
+OPN Quest Hub combines on-chain quests, NFT achievements, staking rewards, DeFi incentives, and community engagement into a single ecosystem experience.
+
+Users can complete quests, earn points, unlock NFT badges, stake ecosystem assets, participate in DeFi activities, and build an on-chain reputation.
 
 ---
 
@@ -23,122 +25,84 @@ https://github.com/builderonhub/opn-quest-hub
 * Network: IOPN Testnet
 * Chain ID: 984
 
-Contract Address:
-
-0x45C277439298AAF0952bC92236C78Aa138313a51
-
 ---
 
-## Features
-## S1 DeFi & Open Finance Module
+## Smart Contracts
 
-OPN Quest Hub now includes an additional DeFi module designed for the S1 — DeFi & Open Finance track.
+### OPN Points & NFT Contract
+
+Core engagement contract responsible for:
+
+* Daily Check-In Rewards
+* Quest Rewards
+* Activity Rewards
+* NFT Achievement Claims
+* Referral Rewards
+* On-Chain Points Tracking
 
 ### OQH Token
 
-OQH is the utility token of OPN Quest Hub.
-
-- Token Name: OPN Quest Hub Token
-- Symbol: OQH
-- Network: IOPN Testnet
-
-### OQH Faucet
-
-Users can claim free test OQH tokens for staking.
-
-- Claim amount: 1000 OQH
-- Claim limit: once per day
-- Reset time: 00:00 UTC
-
-### OQH Staking Vault
-
-Users can stake OQH tokens into the DeFi Vault and earn yield over time.
+Utility token used within OPN Quest Hub.
 
 Features:
 
-- Stake custom OQH amount
-- Claim hourly yield rewards
-- Withdraw staked OQH
-- Rewards increase based on staking duration
+* ERC20 Token
+* Daily Faucet
+* Staking Utility
 
-### Yield Mechanism
+### OQH DeFi Vault
 
-The vault calculates rewards based on staking time.
+Features:
 
-Reward = Staked Amount × Hours Staked × Reward Rate
+* Stake OQH
+* Claim Rewards
+* Withdraw OQH
+* NFT Yield Boosts
 
-================
+### Native OPN Staking
 
-Current reward rate:
+Features:
 
-0.01% per hour
-
-=================
-
-### DeFi Flow
-
-Claim OQH from Faucet
-↓
-Stake OQH in Vault
-↓
-Earn Hourly Yield
-↓
-Claim Rewards
-↓
-Withdraw OQH
-
-------
-
-### Deployed DeFi Contracts
-
-------
-
-OQH Token: "0xE76ac2dA2E36c9D1261759a2145a1c39d90712E4"
-
-OQH Staking Vault: "0x697151A75Cbb649A22047F11bCD58B6c876bC611"
-
------
-
-### Why This Fits S1 — DeFi & Open Finance
-
-This module adds DeFi mechanics to the original quest platform:
-
-ERC20 utility token
-Token faucet
-Staking vault
-Yield rewards
-On-chain financial interaction
-
-The project combines user engagement with DeFi incentives, turning OPN Quest Hub into a gamified open finance experience.
-
-### Wallet Integration
-
-* Connect MetaMask
-* Connect OKX Wallet
-* Automatic network switch to IOPN Testnet
+* Stake Native OPN
+* Earn Platform Points
+* Claim Rewards
+* Withdraw OPN
 
 ---
 
-### On-Chain Points System
+# Features
+
+## Wallet Integration
+
+* MetaMask Support
+* OKX Wallet Support
+* Automatic Network Detection
+* Automatic IOPN Network Switching
+
+---
+
+## On-Chain Points System
 
 All user points are stored on-chain.
+
+Features:
+
+* Daily Check-In Rewards
+* Quest Rewards
+* Referral Rewards
+* Activity Milestone Rewards
+* Transparent Point Tracking
 
 Functions:
 
 solidity
 getPoints(address)
 
-### Features:
-
-* Real-time point tracking
-* Transparent and verifiable rewards
-* Fully decentralized point storage
-
 ---
 
-### Daily Check-In
+## Daily Check-In
 
-Users can check in once every 24 hours.
+Users can check in once per day.
 
 Random rewards:
 
@@ -148,7 +112,7 @@ Random rewards:
 * 40 Points
 * 50 Points
 
-Contract Function:
+Functions:
 
 solidity
 canCheckIn(address)
@@ -156,29 +120,20 @@ canCheckIn(address)
 
 ---
 
-### Quest System
+## Quest System
 
-Available Quests:
+Current Quests:
 
 * Follow IOPN
 * Join Discord
-* Share Project
+* Share OPN Quest Hub
 * Submit Feedback
-
-Rewards:
-
-| Quest           | Reward |
-| --------------- | ------ |
-| Follow IOPN     | +20    |
-| Join Discord    | +30    |
-| Share Project   | +100   |
-| Submit Feedback | +150   |
 
 Features:
 
-* Complete once only
-* On-chain verification
-* Reward distribution via smart contract
+* One-Time Completion
+* On-Chain Reward Distribution
+* Progress Tracking
 
 Functions:
 
@@ -189,62 +144,11 @@ hasCompletedQuest()
 
 ---
 
-### Badge System
+## Activity Milestones
 
-Bronze Badge
+Users earn additional rewards based on transaction activity.
 
-* 100+ Points
-
-Silver Badge
-
-* 500+ Points
-
-Gold Badge
-
-* 1000+ Points
-
----
-
-### NFT Reward Center
-
-Users can claim achievement NFTs.
-
-NFT Tiers:
-
-| Tier       | Requirement |
-| ---------- | ----------- |
-| Bronze NFT | 100 Points  |
-| Silver NFT | 500 Points  |
-| Gold NFT   | 1000 Points |
-
-Functions:
-
-solidity
-claimNFT()
-hasClaimedNFT()
-tokenURI()
-
-
----
-
-### NFT Metadata
-
-IPFS Metadata CID:
-
-bafybeievscabqzzk7cyu5r7djjfyn3465jjhvd6hf7fqhc275womva7lpi
-
-
-Files:
-
-* bronze.json
-* silver.json
-* gold.json
-
----
-
-### On-Chain Activity Rewards
-
-Transaction milestone rewards:
+Milestones:
 
 | Transactions | Reward |
 | ------------ | ------ |
@@ -256,20 +160,188 @@ Transaction milestone rewards:
 | 1000         | +150   |
 | 2000         | +300   |
 
-Frontend reads activity using:
+Activity tracking is powered by:
 
+javascript
 provider.getTransactionCount(userAddress)
 
+---
 
-Quest IDs:
+## NFT Achievement System
 
-* 101
-* 102
-* 103
-* 104
-* 105
-* 106
-* 107
+Users unlock achievement NFTs through participation.
+
+### Bronze NFT
+
+Requirement:
+
+* 100 Points
+
+### Silver NFT
+
+Requirement:
+
+* 500 Points
+
+### Gold NFT
+
+Requirement:
+
+* 1000 Points
+
+Functions:
+
+solidity
+claimNFT()
+hasClaimedNFT()
+tokenURI()
+
+---
+
+## NFT Utility Boosts
+
+Achievement NFTs provide DeFi benefits.
+
+### Bronze NFT
+
++10% staking rewards
+
+### Silver NFT
+
++25% staking rewards
+
+### Gold NFT
+
++50% staking rewards
+
+NFT boosts are automatically applied within the OQH Vault.
+
+---
+
+## OQH Faucet
+
+Users can claim free OQH tokens for testing and staking.
+
+Features:
+
+* 1000 OQH per claim
+* Once per day per wallet
+* Faucet eligibility checking
+
+---
+
+## OQH DeFi Vault
+
+Users can stake OQH and earn yield.
+
+Features:
+
+* Stake OQH
+* Claim Rewards
+* Withdraw OQH
+* Real-Time Reward Tracking
+* NFT Reward Multipliers
+* Total OQH Staked Dashboard
+
+Current Reward Rate:
+
+* 0.2% per hour
+
+DeFi Flow:
+
+Claim OQH
+↓
+Stake OQH
+↓
+Earn Rewards
+↓
+Claim Rewards
+↓
+Withdraw OQH
+
+---
+
+## Native OPN Staking
+
+Users can stake native OPN and earn platform points.
+
+Features:
+
+* Stake OPN
+* Claim Points
+* Withdraw OPN
+* Personal Statistics Dashboard
+* Total OPN Staked Dashboard
+
+Reward Model:
+
+* 1 OPN = 0.1 Point per Minute
+
+---
+
+## Leaderboard
+
+Current Version:
+
+* Top 20 Users
+* Point-Based Ranking
+* Real-Time Updates
+
+Future Expansion:
+
+* Top Stakers
+* Top NFT Holders
+* Seasonal Rankings
+
+---
+
+## Referral System
+
+Referral rewards are recorded on-chain.
+
+Features:
+
+* Invite Friends
+* Referral Tracking
+* One-Time Referral Claim
+* Referrer Point Rewards
+
+---
+
+## User Profile Dashboard
+
+Displays:
+
+* Wallet Address
+* Total Points
+* Badge Rank
+* Next Check-In Timer
+* Contract Information
+
+---
+
+## Security
+
+Current Status:
+
+* Testnet MVP
+* Not yet audited
+
+Security Measures:
+
+* Solidity ^0.8.x overflow protection
+* OpenZeppelin ERC20 and ERC721 standards
+* One-time quest claims
+* One-time NFT claims
+* One-time referral claims
+* Daily faucet restrictions
+* Daily check-in restrictions
+
+Planned Improvements:
+
+* ReentrancyGuard integration
+* Additional contract reviews
+* Formal security audit before mainnet deployment
 
 ---
 
@@ -279,9 +351,9 @@ Quest IDs:
 * Hardhat
 * Ethers.js
 * Vite
+* JavaScript
 * HTML
 * CSS
-* JavaScript
 * IPFS
 * Vercel
 
@@ -289,33 +361,20 @@ Quest IDs:
 
 ## Project Structure
 
+
 frontend/
 contracts/
 scripts/
 artifacts/
 
----
-
-## Future Improvements
-
-* Leaderboard
-* Advanced Analytics
-* Admin Dashboard
-* Better Countdown System
-* More Community Quests
 
 ---
 
-## Why OPN Quest Hub?
+## Vision
 
-OPN Quest Hub encourages ecosystem participation through:
+OPN Quest Hub aims to become the engagement and reward layer of the IOPN ecosystem.
 
-* On-chain engagement
-* Gamification
-* NFT achievements
-* Transparent reward mechanisms
-
-This project demonstrates how blockchain can create engaging community experiences while maintaining transparency and decentralization.
+By combining quests, NFTs, staking, DeFi incentives, and reputation systems, the platform creates a transparent participation economy where user contributions and achievements are rewarded fully on-chain.
 
 ---
 

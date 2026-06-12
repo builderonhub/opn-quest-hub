@@ -2,7 +2,7 @@ const hre = require("hardhat");
 
 async function main() {
   const NativeStaking = await hre.ethers.getContractFactory(
-    "OPNNativePointsStaking"
+    "OPNNativeStaking"
   );
 
   const staking = await NativeStaking.deploy();
@@ -10,7 +10,7 @@ async function main() {
   await staking.waitForDeployment();
 
   console.log(
-    "OPNNativePointsStaking deployed to:",
+    "OPNNativeStaking deployed to:",
     await staking.getAddress()
   );
 }

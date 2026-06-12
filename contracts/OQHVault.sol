@@ -7,7 +7,7 @@ interface IOPNPoints {
     function hasClaimedNFT(address user, uint256 tier) external view returns (bool);
 }
 
-contract OPNStakingVault {
+contract OQHVault {
     IERC20 public opnToken;
     IOPNPoints public opnPoints;
 

@@ -3,19 +3,19 @@ const hre = require("hardhat");
 async function main() {
   const OPN_POINTS = "0x45C277439298AAF0952bC92236C78Aa138313a51";
 
-  const MockOPNToken = await hre.ethers.getContractFactory("MockOPNToken");
-  const opnToken = await MockOPNToken.deploy();
+  const OQHToken = await hre.ethers.getContractFactory("OQHToken");
+  const opnToken = await OQHToken.deploy();
   await opnToken.waitForDeployment();
 
-  const opnTokenAddress = await opnToken.getAddress();
-  console.log("OQH Token deployed to:", opnTokenAddress);
+  const oqhTokenAddress = await opnToken.getAddress();
+  console.log("OQH Token deployed to:", oqhTokenAddress);
 
-  const OPNStakingVault = await hre.ethers.getContractFactory("OPNStakingVault");
-  const vault = await OPNStakingVault.deploy(opnTokenAddress, OPN_POINTS);
+  const OQHVault = await hre.ethers.getContractFactory("OQHVault");
+  const vault = await OQHVault.deploy(oqhTokenAddress, OPN_POINTS);
   await vault.waitForDeployment();
 
   const vaultAddress = await vault.getAddress();
-  console.log("OPNStakingVault deployed to:", vaultAddress);
+  console.log("OQHVault deployed to:", vaultAddress);
 
   const rewardAmount = hre.ethers.parseEther("500");
 

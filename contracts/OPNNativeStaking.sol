@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-contract OPNNativePointsStaking {
+contract OPNNativeStaking {
     uint256 public constant POINTS_PER_1_OPN_PER_HOUR_BPS = 1000; 
     uint256 public totalStaked;
 
