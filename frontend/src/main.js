@@ -594,6 +594,10 @@ const ONCHAIN_QUESTS = [
   { id: 107, tx: 2000, reward: 300, title: "2000 Transactions" }
 ];
 async function renderQuests() {
+  console.log("renderQuests called");
+  console.log(
+  document.querySelectorAll("#quests").length
+);
   const questBox = document.getElementById("quests");
   if (!questBox || !contract || !userAddress) return;
 
@@ -702,10 +706,10 @@ window.completeQuest = async function (questId, reward) {
 
     await refreshPoints();
     await renderLeaderboard();
-    await renderQuests();
     await renderNFTRewards();
 
     statusText.innerText = "Quest completed!";
+
   } catch (err) {
     console.error(err);
     statusText.innerText = "Quest failed or already completed.";
