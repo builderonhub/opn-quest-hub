@@ -10,6 +10,11 @@ contract OPNPoints is ERC721 {
     mapping(address => mapping(uint256 => bool)) public claimedNFT;
 
     mapping(uint256 => uint256) public tokenTier;
+    
+    mapping(address => address) public referrerOf;
+    mapping(address => bool) public hasClaimedReferral;
+
+    uint256 public constant REFERRAL_REWARD = 100;
 
     uint256 public nextTokenId = 1;
 
@@ -110,5 +115,17 @@ contract OPNPoints is ERC721 {
 
     function hasClaimedNFT(address user, uint256 tier) public view returns (bool) {
         return claimedNFT[user][tier];
+    }
+
+
+    function claimReferral(address referrer) public {
+        require(referrer != address(0), "Invalid referrer");
+        require(referrer != msg.sender, "Cannot refer yourself");
+        require(!hasClaimedReferral[msg.sender], "Referral already claimed");
+
+        hasClaimedReferral[msg.sender] = true;
+        referrerOf[msg.sender] = referrer;
+
+        points[referrer] += REFERRAL_REWARD;
     }
 }

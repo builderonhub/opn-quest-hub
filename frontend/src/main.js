@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import "./style.css";
 
-const CONTRACT_ADDRESS = "0x45C277439298AAF0952bC92236C78Aa138313a51";
+const CONTRACT_ADDRESS = "0x143538DC00D3C15bE393358Af029D8Ccc6323708";
 const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
@@ -18,7 +18,10 @@ const ABI = [
   "function hasClaimedNFT(address user, uint256 tier) view returns(bool)",
   "function tokenURI(uint256 tokenId) public view returns (string memory)",
   "function lastCheckInDay(address user) view returns (uint256)",
-  "function canClaimFaucet(address user) view returns(bool)"
+  "function canClaimFaucet(address user) view returns(bool)",
+  "function claimReferral(address referrer) public",
+  "function referrerOf(address user) public view returns(address)",
+  "function hasClaimedReferral(address user) public view returns(bool)"
 ];
 
 const OQH_TOKEN_ABI = [
@@ -188,22 +191,19 @@ document.querySelector("#app").innerHTML = `
         </div>
       </section>
 
-      <section class="referral-section">
-  <h2>🤝 Referral</h2>
 
-    <div class="referral-card">
-      <p>Invite friends to join OPN Quest Hub.</p>
-      <div class="referral-box">
-        <span>Your Invite Link</span>
-        <input id="referralLink" readonly placeholder="Connect wallet first" />
-        <button id="copyReferralBtn">Copy Link</button>
-      </div>
-      <p id="referrerText">No referrer detected</p>
-      <button id="claimReferralBtn">
-        Claim Referral Bonus
-      </button>
-    </div>
-  </section>
+      <section class="referral-section">
+        <h2>🤝 Referral</h2>
+
+        <div class="referral-card">
+          <input id="referralLink" readonly placeholder="Connect wallet first" />
+          <button id="copyReferralBtn">Copy Invite Link</button>
+
+          <p id="referrerText">No referrer detected</p>
+
+          <button id="claimReferralBtn">Claim Referral Bonus</button>
+        </div>
+      </section>
 
   </main>
 `;
@@ -1204,15 +1204,29 @@ async function renderLeaderboard() {
       wallets = getSavedLeaderboardWallets();
     }
 
+    // Xóa ví trùng
+    wallets = [...new Set(wallets.map((w) => w.toLowerCase()))];
+
     const rows = [];
 
     for (const wallet of wallets) {
-      const points = await contract.getPoints(wallet);
+    const questPointsRaw = await contract.getPoints(wallet);
+    let stakingPoints = 0;
 
-      if (Number(points) > 0) {
+    try {
+      const { opnStaking } = await getDeFiContracts();
+      const stakingRaw = await opnStaking.claimedPoints(wallet);
+      stakingPoints = Number(stakingRaw.toString());
+    } catch (err) {
+      console.error("Load leaderboard staking points failed", err);
+    }
+
+    const points = Number(questPointsRaw.toString()) + stakingPoints;
+
+      if (points > 0) {
         rows.push({
           wallet,
-          points: Number(points),
+          points,
         });
       }
     }
@@ -1226,7 +1240,8 @@ async function renderLeaderboard() {
       return;
     }
 
-   rows.sort((a, b) => b.points - a.points);
+    rows.sort((a, b) => b.points - a.points);
+
     const topRows = rows.slice(0, 20);
 
     box.innerHTML = topRows
@@ -1266,7 +1281,8 @@ function updateReferralUI() {
   if (!referralInput || !referrerText) return;
 
   if (userAddress) {
-    referralInput.value = `${window.location.origin}${window.location.pathname}?ref=${userAddress}`;
+    referralInput.value =
+      `${window.location.origin}${window.location.pathname}?ref=${userAddress}`;
   }
 
   const ref = getRefFromUrl();
@@ -1278,31 +1294,16 @@ function updateReferralUI() {
   }
 }
 
-function saveReferral(referrer, referee) {
-  const saved = localStorage.getItem(REFERRAL_STORAGE_KEY);
-  const referrals = saved ? JSON.parse(saved) : [];
-
-  const exists = referrals.some(
-    (item) => item.referee.toLowerCase() === referee.toLowerCase()
-  );
-
-  if (!exists) {
-    referrals.push({
-      referrer,
-      referee,
-      time: Date.now(),
-    });
-
-    localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify(referrals));
-  }
-}
-
 const copyReferralBtn = document.getElementById("copyReferralBtn");
 
 if (copyReferralBtn) {
   copyReferralBtn.onclick = async () => {
     const input = document.getElementById("referralLink");
-    if (!input || !input.value) return;
+
+    if (!input || !input.value) {
+      alert("Connect wallet first");
+      return;
+    }
 
     await navigator.clipboard.writeText(input.value);
     alert("Referral link copied!");
@@ -1313,34 +1314,42 @@ const claimReferralBtn = document.getElementById("claimReferralBtn");
 
 if (claimReferralBtn) {
   claimReferralBtn.onclick = async () => {
-    if (!userAddress) {
-      alert("Connect wallet first");
-      return;
+    try {
+      if (!contract || !userAddress) {
+        alert("Connect wallet first");
+        return;
+      }
+
+      const ref = getRefFromUrl();
+
+      if (!ref) {
+        alert("No referrer found");
+        return;
+      }
+
+      if (ref.toLowerCase() === userAddress.toLowerCase()) {
+        alert("You cannot refer yourself");
+        return;
+      }
+
+      const alreadyClaimed = await contract.hasClaimedReferral(userAddress);
+
+      if (alreadyClaimed) {
+        alert("Referral already claimed");
+        return;
+      }
+
+      const tx = await contract.claimReferral(ref);
+      await tx.wait();
+
+      alert("Referral claimed! Referrer earned +100 points.");
+
+      await refreshPoints();
+      await renderLeaderboard();
+      updateReferralUI();
+    } catch (err) {
+      console.error("Referral error:", err);
+      alert("Referral claim failed");
     }
-
-    const ref = getRefFromUrl();
-
-    if (!ref) {
-      alert("No referrer found");
-      return;
-    }
-
-    if (ref.toLowerCase() === userAddress.toLowerCase()) {
-      alert("You cannot refer yourself");
-      return;
-    }
-
-    const claimedKey = `${CLAIMED_REFERRAL_KEY}_${userAddress.toLowerCase()}`;
-
-    if (localStorage.getItem(claimedKey)) {
-      alert("Referral bonus already claimed");
-      return;
-    }
-
-    saveReferral(ref, userAddress);
-    localStorage.setItem(claimedKey, "true");
-
-    alert("Referral recorded successfully!");
-    updateReferralUI();
   };
 }
