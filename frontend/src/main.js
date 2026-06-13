@@ -18,10 +18,7 @@ const ABI = [
   "function hasClaimedNFT(address user, uint256 tier) view returns(bool)",
   "function tokenURI(uint256 tokenId) public view returns (string memory)",
   "function lastCheckInDay(address user) view returns (uint256)",
-  "function canClaimFaucet(address user) view returns(bool)",
-  "function claimReferral(address referrer) public",
-  "function referrerOf(address user) public view returns(address)",
-  "function hasClaimedReferral(address user) public view returns(bool)"
+  "function canClaimFaucet(address user) view returns(bool)"
 ];
 
 const OQH_TOKEN_ABI = [
@@ -191,19 +188,22 @@ document.querySelector("#app").innerHTML = `
         </div>
       </section>
 
-
       <section class="referral-section">
-        <h2>🤝 Referral</h2>
+  <h2>🤝 Referral</h2>
 
-        <div class="referral-card">
-          <input id="referralLink" readonly placeholder="Connect wallet first" />
-          <button id="copyReferralBtn">Copy Invite Link</button>
-
-          <p id="referrerText">No referrer detected</p>
-
-          <button id="claimReferralBtn">Claim Referral Bonus</button>
-        </div>
-      </section>
+    <div class="referral-card">
+      <p>Invite friends to join OPN Quest Hub.</p>
+      <div class="referral-box">
+        <span>Your Invite Link</span>
+        <input id="referralLink" readonly placeholder="Connect wallet first" />
+        <button id="copyReferralBtn">Copy Link</button>
+      </div>
+      <p id="referrerText">No referrer detected</p>
+      <button id="claimReferralBtn">
+        Claim Referral Bonus
+      </button>
+    </div>
+  </section>
 
   </main>
 `;
@@ -484,8 +484,7 @@ connectBtn.onclick = async () => {
     await renderDeFiVault();
     await updateFaucetStatus();
     await renderOPNStaking();
-    await renderLeaderboard();
-
+   
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
 
@@ -610,7 +609,7 @@ async function renderQuests() {
     (quest, index, self) =>
       index === self.findIndex((q) => q.id === quest.id)
   );
-  for (const quest of quests) {
+  for (const quest of uniqueQuests) {
     const done = await contract.hasCompletedQuest(userAddress, quest.id);
 
     const div = document.createElement("div");
@@ -753,7 +752,12 @@ async function renderNFTRewards() {
     2: "/silver.png",
     3: "/gold.png",
   };
-  for (const nft of nftRewards) {
+      const uniqueNFTRewards = nftRewards.filter(
+      (nft, index, self) =>
+        index === self.findIndex((item) => item.tier === nft.tier)
+    );
+
+    for (const nft of uniqueNFTRewards) {
     const claimed = await contract.hasClaimedNFT(userAddress, nft.tier);
     const eligible = points >= nft.required;
 
@@ -883,8 +887,23 @@ async function renderDeFiVault() {
     const totalOQHStaked = await opnToken.balanceOf(OQH_VAULT_ADDRESS);
     const staked = await opnVault.stakedAmount(userAddress);
     const reward = await opnVault.pendingReward(userAddress);
-    const boostBps = await opnVault.getNFTBoostBps(userAddress);
-    const boostPercent = Number(boostBps) / 100;
+    let boostPercent = 0;
+
+    try {
+      const hasGold = await contract.hasClaimedNFT(userAddress, 3);
+      const hasSilver = await contract.hasClaimedNFT(userAddress, 2);
+      const hasBronze = await contract.hasClaimedNFT(userAddress, 1);
+
+      if (hasGold) {
+        boostPercent = 50;
+      } else if (hasSilver) {
+        boostPercent = 25;
+      } else if (hasBronze) {
+        boostPercent = 10;
+      }
+    } catch (err) {
+      console.error("Load NFT boost failed:", err);
+    }
 
     console.log("OQH balance raw:", balance.toString());
     console.log("OQH staked raw:", staked.toString());
@@ -1219,38 +1238,44 @@ function shortWallet(address) {
 
 async function renderLeaderboard() {
   const box = document.getElementById("leaderboardList");
+
   if (!box || !contract) return;
 
   box.innerHTML = "Loading leaderboard...";
 
   try {
+    let wallets = getSavedLeaderboardWallets();
+
     if (userAddress) {
       saveLeaderboardWallet(userAddress);
+      wallets = getSavedLeaderboardWallets();
     }
 
-    const wallets = getSavedLeaderboardWallets();
+    const { opnStaking } = await getDeFiContracts();
 
     const rows = [];
 
     for (const wallet of wallets) {
-      const questPointsRaw = await contract.getPoints(wallet);
-      let stakingPoints = 0;
+      const questPoints = Number(
+        await contract.getPoints(wallet)
+      );
+
+      let opnStakePoints = 0;
 
       try {
-        const { opnStaking } = await getDeFiContracts();
-        const stakingRaw = await opnStaking.claimedPoints(wallet);
-        stakingPoints = Number(stakingRaw.toString());
+        opnStakePoints = Number(
+          await opnStaking.claimedPoints(wallet)
+        );
       } catch (err) {
-        console.error("Load leaderboard staking points failed", err);
+        console.error("Load OPN staking points failed", wallet, err);
       }
 
-      const points =
-        Number(questPointsRaw.toString()) + stakingPoints;
+      const totalPoints = questPoints + opnStakePoints;
 
-      if (points > 0) {
+      if (totalPoints > 0) {
         rows.push({
           wallet,
-          points,
+          points: totalPoints,
         });
       }
     }
@@ -1265,7 +1290,6 @@ async function renderLeaderboard() {
     }
 
     rows.sort((a, b) => b.points - a.points);
-
     const topRows = rows.slice(0, 20);
 
     box.innerHTML = topRows
@@ -1274,9 +1298,7 @@ async function renderLeaderboard() {
           <div class="leaderboard-row">
             <div>
               <div class="leaderboard-rank">#${index + 1}</div>
-              <div class="leaderboard-wallet">
-                ${shortWallet(item.wallet)}
-              </div>
+              <div class="leaderboard-wallet">${shortWallet(item.wallet)}</div>
             </div>
 
             <div class="leaderboard-points">
@@ -1307,8 +1329,7 @@ function updateReferralUI() {
   if (!referralInput || !referrerText) return;
 
   if (userAddress) {
-    referralInput.value =
-      `${window.location.origin}${window.location.pathname}?ref=${userAddress}`;
+    referralInput.value = `${window.location.origin}${window.location.pathname}?ref=${userAddress}`;
   }
 
   const ref = getRefFromUrl();
@@ -1320,16 +1341,31 @@ function updateReferralUI() {
   }
 }
 
+function saveReferral(referrer, referee) {
+  const saved = localStorage.getItem(REFERRAL_STORAGE_KEY);
+  const referrals = saved ? JSON.parse(saved) : [];
+
+  const exists = referrals.some(
+    (item) => item.referee.toLowerCase() === referee.toLowerCase()
+  );
+
+  if (!exists) {
+    referrals.push({
+      referrer,
+      referee,
+      time: Date.now(),
+    });
+
+    localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify(referrals));
+  }
+}
+
 const copyReferralBtn = document.getElementById("copyReferralBtn");
 
 if (copyReferralBtn) {
   copyReferralBtn.onclick = async () => {
     const input = document.getElementById("referralLink");
-
-    if (!input || !input.value) {
-      alert("Connect wallet first");
-      return;
-    }
+    if (!input || !input.value) return;
 
     await navigator.clipboard.writeText(input.value);
     alert("Referral link copied!");
@@ -1340,42 +1376,34 @@ const claimReferralBtn = document.getElementById("claimReferralBtn");
 
 if (claimReferralBtn) {
   claimReferralBtn.onclick = async () => {
-    try {
-      if (!contract || !userAddress) {
-        alert("Connect wallet first");
-        return;
-      }
-
-      const ref = getRefFromUrl();
-
-      if (!ref) {
-        alert("No referrer found");
-        return;
-      }
-
-      if (ref.toLowerCase() === userAddress.toLowerCase()) {
-        alert("You cannot refer yourself");
-        return;
-      }
-
-      const alreadyClaimed = await contract.hasClaimedReferral(userAddress);
-
-      if (alreadyClaimed) {
-        alert("Referral already claimed");
-        return;
-      }
-
-      const tx = await contract.claimReferral(ref);
-      await tx.wait();
-
-      alert("Referral claimed! Referrer earned +100 points.");
-
-      await refreshPoints();
-      await renderLeaderboard();
-      updateReferralUI();
-    } catch (err) {
-      console.error("Referral error:", err);
-      alert("Referral claim failed");
+    if (!userAddress) {
+      alert("Connect wallet first");
+      return;
     }
+
+    const ref = getRefFromUrl();
+
+    if (!ref) {
+      alert("No referrer found");
+      return;
+    }
+
+    if (ref.toLowerCase() === userAddress.toLowerCase()) {
+      alert("You cannot refer yourself");
+      return;
+    }
+
+    const claimedKey = `${CLAIMED_REFERRAL_KEY}_${userAddress.toLowerCase()}`;
+
+    if (localStorage.getItem(claimedKey)) {
+      alert("Referral bonus already claimed");
+      return;
+    }
+
+    saveReferral(ref, userAddress);
+    localStorage.setItem(claimedKey, "true");
+
+    alert("Referral recorded successfully!");
+    updateReferralUI();
   };
 }
