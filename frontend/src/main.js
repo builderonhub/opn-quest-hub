@@ -61,174 +61,202 @@ const ERC20_ABI = [
 ];
 
 document.querySelector("#app").innerHTML = `
-  
-  <div class="project-banner">
-    <div>
-      <span class="banner-badge">S1 Builder Contest · DeFi & Open Finance</span>
-      <h2>OPN Quest Hub</h2>
-      <p>
-        Your journey across the IOPN ecosystem starts here.</p>
-        Complete quests, earn on-chain points, unlock NFT rewards, stake OQH and OPN, and compete on a free-for-all leaderboard where every rank is earned through real activity.
-      </p>
-    </div>
-
-    <div class="banner-stats">
-      <div>🏆 Leaderboard</div>
-      <div>🎖 NFT Rewards</div>
-      <div>⛓ On-chain Verified</div>
-    </div>
-  </div>
-
-  <main class="container">
-  <div class="dashboard">
-    <div class="card checkin-card">
-      <p class="badge">IOPN Testnet • Chain ID 984</p>
-      <h1>OPN Points Tracker</h1>
-      <p class="subtitle">Daily check-in and earn on-chain OPN points.</p>
-      <button id="connectBtn">Connect OKX or MetaMask Wallet</button>
-
-      <div class="info">
-        <p><span>Wallet</span><b id="wallet">Not Connected</b></p>
-        <p><span>Points</span><b id="points">0</b></p>
-        <p><span>Badge</span><b id="userBadge">No Badge</b></p>
-        <p><span>Next Check-In</span><b id="countdown">Loading...</b></p>
-        <p><span>Contract</span><b class="mono">${CONTRACT_ADDRESS}</b></p>
+  <div class="app-shell">
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="nav-logo">O</div>
+        <div>
+          <div class="nav-title">OPN Quest Hub</div>
+          <div class="nav-subtitle">AI · IOPN Chain · 984</div>
+        </div>
       </div>
 
-      <button id="checkInBtn">Daily Check-In</button>
-      <p id="status"></p>
+      <nav class="nav-links">
+        <button onclick="scrollToSection('quests')">Quests</button>
+        <button onclick="scrollToSection('onchainQuests')">On-chain</button>
+        <button onclick="scrollToSection('nftRewards')">NFTs</button>
+        <button onclick="scrollToSection('leaderboardList')">Leaderboard</button>
+        <button onclick="scrollToSection('referralLink')">Referral</button>
+      </nav>
+
+      <div class="nav-actions">
+        <span class="network-pill">● IOPN Testnet</span>
+        <button id="topConnectBtn">Connect Wallet</button>
       </div>
+    </header>
 
-     <div class="card nft-card-main">
-      <h2>NFT Reward Center</h2>
-      <div id="nftRewards"></div>
-    </div>
-
-    <div class="card quest-card-main">
-      <div class="card faucet-card">
-        <h2>OQH Faucet</h2>
-        <p class="subtitle">
-          Claim free test OQH tokens for staking.
+    <section class="hero-banner">
+      <div>
+        <h1>Your journey across the IOPN ecosystem starts here.</h1>
+        <p>
+          Complete quests, earn on-chain points, unlock NFT rewards, stake OQH and OPN,
+          and compete on a free-for-all leaderboard where every rank is earned through real activity.
         </p>
-        <p id="faucetStatus">Loading...</p>
-      <button id="faucetBtn" onclick="claimTestOPN()">
-        Claim 1000 OQH
-      </button>
-      </div> 
+      </div>
+      <div class="hero-orb">O</div>
+    </section>
 
-      <h2>OQH DeFi Vault</h2>
+    <section class="stats-row">
+      <div class="stat-card">
+        <span>Total Points</span>
+        <b id="totalPointsStat">0</b>
+        <small>On-chain</small>
+      </div>
 
-      <div class="oqh-total-card">
-        <div class="oqh-total-title">TOTAL STAKING OQH</div>
-        <div class="oqh-total-value">
-          <span id="totalOQHStaked">0</span> OQH
+    <div class="stat-card">
+      <span>Total Staked</span>
+      <b><span id="totalOQHStaked">0.00</span> OQH</b>
+      <small>In Vault</small>
+    </div>
+
+      <div class="stat-card">
+        <span>Total Staked</span>
+        <b><span id="opntTotalStaked">0</span> OPN</b>
+        <small>Native Staking</small>
+      </div>
+
+    </section>
+
+    <main class="dashboard-main">
+      <aside class="profile-panel">
+        <h2>Your Profile</h2>
+
+        <div class="profile-circle">
+          <b id="profilePoints">0</b>
         </div>
-      </div>
-        
-      <div class="info">
-        <p><span>OQH Balance</span><b id="opnBalance">0</b></p>
-        <p><span>Staked OQH</span><b id="stakedOPN">0</b></p>
-        <p><span>Pending Reward</span><b id="pendingReward">0</b></p>
-        <p>NFT Boost: <span id="nftBoost">0%</span></p>
-      </div>
 
-      <div class="stake-input-wrapper">
-        <input
-          id="stakeAmount"
-          class="stake-input"
-          type="number"
-          placeholder="Enter OQH amount"
-        />
+        <p class="profile-wallet" id="wallet">Not Connected</p>
 
-        <button
-          type="button"
-          class="max-btn"
-          onclick="setMaxStake()"
-        >
-          MAX
+        <div class="profile-info-row">
+          <span>Total Points</span>
+          <b id="profileTotalPoints">0</b>
+        </div>
+
+        <div class="profile-info-row">
+          <span>Badge Level</span>
+          <b id="userBadge">No Badge</b>
+        </div>
+
+        <div class="profile-info-row">
+          <span>Contract</span>
+          <b class="mono">${CONTRACT_ADDRESS}</b>
+        </div>
+
+        <button id="connectBtn" class="hidden-connect-btn">
+          Connect OKX or MetaMask Wallet
         </button>
-      </div>
 
-      <button onclick="stakeOPN()">
-        Stake OQH
-      </button>
-      <button onclick="claimVaultReward()">
-        Claim Reward
-      </button>
+        <p id="status"></p>
+      </aside>
 
-      <button onclick="withdrawOPN()">
-        Withdraw
-      </button>
-    </div>
-  <div class="card">
-      <div class="card faucet-card">
-      <h2>OPN Faucet</h2>
-      <p>Get free testnet OPN for gas and native staking.</p>
-      <p><strong>External Faucet</strong></p>
-      <button onclick="openOPNFaucet()">
-        Get Testnet OPN
-      </button>
-    </div>
-      <h2>OPN Stake → Earn Points</h2>
-      <div class="opn-total-box">
-        <div class="opn-total-label">TOTAL STAKING OPN</div>
-        <div class="opn-total-value">
-          <span id="opntTotalStaked">0</span> OPN
-        </div>
-      </div>
+      <section class="center-panel">
+        <div class="card checkin-card">
+          <h2>Daily Check-In</h2>
 
-      <div class="opn-info-box">
-        <p><span>My OPN Balance</span><b id="opntBalance">0</b></p>
-        <p><span>My Staked OPN</span><b id="opntStaked">0</b></p>
-        <p><span>Pending Points</span><b id="opntPendingPoints">0</b></p>
-      </div>
+          <div class="daily-box">
+            <div>
+              <h3>Earn Points Every Day</h3>
+              <p>Check in daily and build your on-chain activity.</p>
+            </div>
 
-      <input id="opnStakeAmount" class="stake-input" placeholder="Amount OPN" />
-      <button onclick="stakeOPNT()">Stake OPN</button>
-      <button onclick="claimOPNStakingPoints()">Claim Points</button>
-      <button onclick="withdrawOPNT()">Withdraw OPN</button>
-    </div>
-
-
-
-    <div class="card quest-card-main">
-      <h2>Quest System</h2>
-      <div id="quests"></div>
-    </div>
-
-    <div class="card quest-card-main">
-    <h2>On-chain Activity</h2>
-    <div id="onchainQuests"></div>
-    </div>
-
-      <section class="leaderboard-section">
-        <h2>🏆 Leaderboard</h2>
-
-        <div class="leaderboard-card">
-          <div id="leaderboardList">
-            Loading leaderboard...
+            <button id="checkInBtn">Check In</button>
           </div>
+        </div>
+
+        <div class="card opn-stake-card">
+        <div class="inner-card">
+          <h2>OPN Faucet</h2>
+          <p>Get free testnet OPN for gas and native staking.</p>
+          <button onclick="openOPNFaucet()">Get Testnet OPN</button>
+        </div>
+
+        <h2>OPN Stake → Earn Points</h2>
+
+        <div class="opn-info-box">
+          <p><span>My OPN Balance</span><b id="opntBalance">0</b></p>
+          <p><span>My Staked OPN</span><b id="opntStaked">0</b></p>
+          <p><span>Pending Points</span><b id="opntPendingPoints">0</b></p>
+        </div>
+
+        <input id="opnStakeAmount" class="stake-input" placeholder="Amount OPN" />
+        <button onclick="stakeOPNT()">Stake OPN</button>
+        <button onclick="claimOPNStakingPoints()">Claim Points</button>
+        <button onclick="withdrawOPNT()">Withdraw OPN</button>
+      </div>
+
+        <div class="card quest-card-main">
+          <h2>Quests</h2>
+          <div id="quests"></div>
+        </div>
+
+        <section class="referral-section">
+        <h2>🤝 Referral</h2>
+        <div class="referral-card">
+          <p>Invite friends to join OPN Quest Hub.</p>
+          <div class="referral-box">
+            <span>Your Invite Link</span>
+            <input id="referralLink" readonly placeholder="Connect wallet first" />
+            <button id="copyReferralBtn">Copy Link</button>
+          </div>
+          <p id="referrerText">No referrer detected</p>
+          <button id="claimReferralBtn">Claim Referral Bonus</button>
         </div>
       </section>
 
-      <section class="referral-section">
-  <h2>🤝 Referral</h2>
+        <section class="leaderboard-section">
+        <h2>🏆 Leaderboard</h2>
+        <div class="leaderboard-card">
+          <div id="leaderboardList">Loading leaderboard...</div>
+        </div>
+      </section>      
+      </section>
 
-    <div class="referral-card">
-      <p>Invite friends to join OPN Quest Hub.</p>
-      <div class="referral-box">
-        <span>Your Invite Link</span>
-        <input id="referralLink" readonly placeholder="Connect wallet first" />
-        <button id="copyReferralBtn">Copy Link</button>
+      <section class="right-panel">
+        <div class="card nft-card-main">
+          <h2>NFT Reward Center</h2>
+          <div id="nftRewards"></div>
+        </div>
+
+        <div class="card vault-card">
+      <div class="inner-card">
+        <h2>OQH Faucet</h2>
+        <p class="subtitle">Claim free test OQH tokens for staking.</p>
+        <p id="faucetStatus">Loading...</p>
+        <button id="faucetBtn" onclick="claimTestOPN()">Claim 1000 OQH</button>
       </div>
-      <p id="referrerText">No referrer detected</p>
-      <button id="claimReferralBtn">
-        Claim Referral Bonus
-      </button>
-    </div>
-  </section>
 
-  </main>
+      <h2>OQH DeFi Vault</h2>
+        
+        <div class="info">
+          <p><span>OQH Balance</span><b id="oqhBalance">0.00</b></p>
+          <p><span>Staked OQH</span><b id="stakedOQH">0.00</b></p>
+          <p><span>Pending Reward</span><b id="pendingReward">0.00</b></p>
+          <p><span>NFT Boost</span><b id="nftBoost">0%</b></p>
+        </div>
+
+        <div class="stake-input-wrapper">
+          <input id="stakeAmount" class="stake-input" type="number" placeholder="Enter OQH amount" />
+          <button type="button" class="max-btn" onclick="setMaxStake()">MAX</button>
+        </div>
+
+        <button onclick="stakeOPN()">Stake OQH</button>
+        <button onclick="claimVaultReward()">Claim Reward</button>
+        <button onclick="withdrawOPN()">Withdraw</button>
+      </div>
+
+      <div class="card quest-card-main">
+        <h2>On-chain Activity</h2>
+        <div id="onchainQuests"></div>
+      </div> 
+
+      </section>
+    </main>
+      
+    <section class="extra-grid">      
+      
+      
+    </section>
+  </div>
 `;
 
 const connectBtn = document.getElementById("connectBtn");
@@ -339,6 +367,10 @@ async function startCountdown() {
   }
 
   function updateCountdown() {
+      const countdownText = document.getElementById("countdownText");
+      const checkInBtn = document.getElementById("checkInBtn");
+
+      if (!countdownText || !checkInBtn) return;
     const now = new Date();
     const nextUTC = new Date(now);
 
@@ -431,7 +463,7 @@ function getWalletProvider() {
   }
 
 async function refreshPoints() {
-  const questPoints = await contract.getPoints(userAddress);
+  const questPoints = Number(await contract.getPoints(userAddress));
 
   let stakingPoints = 0;
 
@@ -444,11 +476,23 @@ async function refreshPoints() {
     console.error("Load staking points failed", err);
   }
 
-  const pointNumber =
-    Number(questPoints) + stakingPoints;
+  const pointNumber = questPoints + stakingPoints;
+  const pointText = pointNumber.toString();
 
-  pointsText.innerText = pointNumber.toString();
-  userBadge.innerText = getBadge(pointNumber);
+  const pointsEl = document.getElementById("totalPointsStat");
+  const profilePointsEl = document.getElementById("profilePoints");
+  const profileTotalPointsEl =
+    document.getElementById("profileTotalPoints");
+
+  if (pointsEl) pointsEl.innerText = pointText;
+  if (profilePointsEl) profilePointsEl.innerText = pointText;
+  if (profileTotalPointsEl) {
+    profileTotalPointsEl.innerText = pointText;
+  }
+
+  if (userBadge) {
+    userBadge.innerText = getBadge(pointNumber);
+  }
 }
 
 connectBtn.onclick = async () => {
@@ -469,6 +513,13 @@ connectBtn.onclick = async () => {
 
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
+    const topBtn = document.getElementById("topConnectBtn");
+
+    if (topBtn) {
+      topBtn.innerHTML = `
+        🟢 ${shortWallet(userAddress)}
+      `;
+    }
     saveLeaderboardWallet(userAddress);
     updateReferralUI();
 
@@ -693,62 +744,85 @@ window.doQuest = function (questId, url) {
     btn.disabled = false;
   }
 };
+
+let isRenderingOnchainQuests = false;
+
 async function renderOnchainQuests() {
+  if (isRenderingOnchainQuests) return;
+  isRenderingOnchainQuests = true;
+
   const box = document.getElementById("onchainQuests");
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  if (!contract || !userAddress) {
-    box.innerHTML = `<p>Please connect wallet.</p>`;
+  if (!box) {
+    isRenderingOnchainQuests = false;
     return;
   }
 
-  const walletProvider = getWalletProvider();
-  const provider = new ethers.BrowserProvider(walletProvider);
-  const txCount = await provider.getTransactionCount(userAddress);
+  box.innerHTML = "";
 
-  for (const q of ONCHAIN_QUESTS) {
-    const completed = await contract.hasCompletedQuest(userAddress, q.id);
-    const eligible = txCount >= q.tx;
+  try {
+    if (!contract || !userAddress) {
+      box.innerHTML = `<p>Please connect wallet.</p>`;
+      isRenderingOnchainQuests = false;
+      return;
+    }
 
-    const div = document.createElement("div");
-    div.className = "quest-item";
+    const walletProvider = getWalletProvider();
+    const provider = new ethers.BrowserProvider(walletProvider);
+    const txCount = await provider.getTransactionCount(userAddress);
 
-    div.innerHTML = `
-      <div class="onchain-card">
+    const uniqueQuests = ONCHAIN_QUESTS.filter(
+      (quest, index, self) =>
+        index === self.findIndex((q) => q.id === quest.id)
+    );
+
+    for (const q of uniqueQuests) {
+      const completed = await contract.hasCompletedQuest(userAddress, q.id);
+      const eligible = txCount >= q.tx;
+
+      const div = document.createElement("div");
+      div.className = "onchain-card";
+
+      div.innerHTML = `
         <h3>${q.title}</h3>
         <p>Reward: +${q.reward} points</p>
 
         <button ${completed || !eligible ? "disabled" : ""}>
           ${completed ? "Claimed" : eligible ? "Claim Points" : "Locked"}
         </button>
-      </div>
-    `;
+      `;
 
-    const btn = div.querySelector("button");
+      const btn = div.querySelector("button");
 
-    btn.onclick = async () => {
-      try {
-        statusText.innerText = "Claiming on-chain activity reward...";
+      btn.onclick = async () => {
+        try {
+          statusText.innerText = "Claiming on-chain activity reward...";
 
-        const tx = await contract.completeQuest(q.id, q.reward);
-        await tx.wait();
+          const tx = await contract.completeQuest(q.id, q.reward);
+          await tx.wait();
 
-        statusText.innerText = `Claimed +${q.reward} points!`;
+          statusText.innerText = `Claimed +${q.reward} points!`;
 
-        await refreshPoints();
-        await renderLeaderboard();
-        await renderOnchainQuests();
-        await renderNFTRewards();
-      } catch (err) {
-        console.error(err);
-        statusText.innerText = "Claim failed or rejected.";
-      }
-    };
+          await refreshPoints();
+          await renderLeaderboard();
+          await renderNFTRewards();
 
-    box.appendChild(div);
+          isRenderingOnchainQuests = false;
+          await renderOnchainQuests();
+        } catch (err) {
+          console.error(err);
+          statusText.innerText = "Claim failed or rejected.";
+          isRenderingOnchainQuests = false;
+        }
+      };
+
+      box.appendChild(div);
+    }
+  } catch (err) {
+    console.error("Render on-chain quests failed:", err);
+    box.innerHTML = `<p>Failed to load on-chain activity.</p>`;
   }
+
+  isRenderingOnchainQuests = false;
 }
 
 window.completeQuest = async function (questId, reward) {
@@ -962,13 +1036,41 @@ async function renderDeFiVault() {
     console.log("OQH balance raw:", balance.toString());
     console.log("OQH staked raw:", staked.toString());
     console.log("OQH reward raw:", reward.toString());
+    console.log("totalOQHStaked raw:", totalOQHStaked);
+    console.log(
+      "totalOQHStaked formatted:",
+      ethers.formatEther(totalOQHStaked)
+    );
 
-    document.getElementById("opnBalance").innerText = ethers.formatEther(balance);
-    document.getElementById("stakedOPN").innerText = ethers.formatEther(staked);
-    document.getElementById("pendingReward").innerText = ethers.formatEther(reward);
-    document.getElementById("nftBoost").innerText = `+${boostPercent}%`;
-    document.getElementById("totalOQHStaked").innerText =
-      Number(ethers.formatEther(totalOQHStaked)).toFixed(4);
+   
+      const oqhBalanceEl = document.getElementById("oqhBalance");
+      if (oqhBalanceEl) {
+        oqhBalanceEl.innerText =
+          Number(ethers.formatEther(balance)).toFixed(2);
+      }
+
+      const stakedOQHEl = document.getElementById("stakedOQH");
+      if (stakedOQHEl) {
+        stakedOQHEl.innerText =
+          Number(ethers.formatEther(staked)).toFixed(2);
+      }
+
+      const pendingRewardEl = document.getElementById("pendingReward");
+      if (pendingRewardEl) {
+        pendingRewardEl.innerText =
+          Number(ethers.formatEther(reward)).toFixed(2);
+      }
+
+      const nftBoostEl = document.getElementById("nftBoost");
+      if (nftBoostEl) {
+        nftBoostEl.innerText = `+${boostPercent}%`;
+      }
+
+      const totalOQHStakedEl = document.getElementById("totalOQHStaked");
+      if (totalOQHStakedEl) {
+        totalOQHStakedEl.innerText =
+          Number(ethers.formatEther(totalOQHStaked)).toFixed(2);
+      }
   } catch (err) {
     console.error("renderDeFiVault error:", err);
   }
@@ -1089,9 +1191,12 @@ window.withdrawOPN = async function () {
     statusText.innerText = "Withdraw failed.";
   }
 };
+
 window.setMaxStake = async function () {
-  const balance = document.getElementById("opnBalance").innerText;
-  document.getElementById("stakeAmount").value = parseFloat(balance);
+  const balance = document.getElementById("oqhBalance")?.innerText || "0";
+
+  document.getElementById("stakeAmount").value =
+    parseFloat(balance);
 };
 
 async function approveOPNT() {
@@ -1221,7 +1326,7 @@ async function renderOPNStaking() {
     pending.toString();
 
   document.getElementById("opntTotalStaked").innerText =
-    Number(ethers.formatEther(totalStaked)).toFixed(4);
+    Number(ethers.formatEther(totalStaked)).toFixed(2);
 } 
 function openOPNFaucet() {
   window.open("https://faucet.iopn.tech/", "_blank");
@@ -1322,7 +1427,8 @@ async function renderLeaderboard() {
 
       const totalPoints = questPoints + opnStakePoints;
 
-      if (totalPoints > 0) {
+
+       if (totalPoints > 0) {
         let badge = "Newbie";
         if (totalPoints >= 1000) badge = "Gold";
         else if (totalPoints >= 500) badge = "Silver";
@@ -1506,3 +1612,23 @@ if (claimReferralBtn) {
     updateReferralUI();
   };
 }
+
+window.scrollToSection = function (id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+};
+
+const topConnectBtn = document.getElementById("topConnectBtn");
+
+if (topConnectBtn) {
+  topConnectBtn.onclick = () => {
+    const connectBtn = document.getElementById("connectBtn");
+    if (connectBtn) connectBtn.click();
+  };
+}
+
