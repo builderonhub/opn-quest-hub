@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 interface IOPNPoints {
     function getPoints(address user) external view returns (uint256);
@@ -12,57 +11,58 @@ interface IOPNNativeStaking {
     function claimedPoints(address user) external view returns (uint256);
 }
 
-contract OPNRewardNFT is ERC1155, Ownable {
+contract OPNRewardNFT is ERC721 {
     IOPNPoints public pointsContract;
     IOPNNativeStaking public opnStaking;
 
-    mapping(address => mapping(uint256 => bool)) public hasClaimedNFT;
+    address public owner;
+    uint256 public nextTokenId = 1;
 
-    uint256 public constant BRONZE = 1;
-    uint256 public constant SILVER = 2;
-    uint256 public constant GOLD = 3;
+    mapping(address => mapping(uint256 => bool)) public hasClaimedTier;
+    mapping(uint256 => uint256) public requiredPoints;
 
     constructor(
         address _pointsContract,
         address _opnStaking
-    ) ERC1155("") Ownable(msg.sender) {
+    ) ERC721("OPN Quest Reward NFT", "OQRN") {
+        owner = msg.sender;
+
         pointsContract = IOPNPoints(_pointsContract);
         opnStaking = IOPNNativeStaking(_opnStaking);
+
+        requiredPoints[1] = 100;
+        requiredPoints[2] = 500;
+        requiredPoints[3] = 1000;
     }
 
-    function totalEligiblePoints(address user) public view returns (uint256) {
-        uint256 questPoints = pointsContract.getPoints(user);
-        uint256 stakingPoints = opnStaking.claimedPoints(user);
-
-        return questPoints + stakingPoints;
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
     }
 
-    function requiredPoints(uint256 tier) public pure returns (uint256) {
-        if (tier == BRONZE) return 100;
-        if (tier == SILVER) return 500;
-        if (tier == GOLD) return 1000;
-
-        revert("Invalid NFT tier");
+    function totalPoints(address user) public view returns (uint256) {
+        return pointsContract.getPoints(user) + opnStaking.claimedPoints(user);
     }
 
     function claimNFT(uint256 tier) external {
-        require(tier >= 1 && tier <= 3, "Invalid NFT tier");
-        require(!hasClaimedNFT[msg.sender][tier], "Already claimed");
+        require(tier >= 1 && tier <= 3, "Invalid tier");
+        require(!hasClaimedTier[msg.sender][tier], "Already claimed");
+        require(totalPoints(msg.sender) >= requiredPoints[tier], "Not enough points");
 
-        uint256 totalPoints = totalEligiblePoints(msg.sender);
-        uint256 required = requiredPoints(tier);
+        hasClaimedTier[msg.sender][tier] = true;
 
-        require(totalPoints >= required, "Not enough points");
+        uint256 tokenId = nextTokenId;
+        nextTokenId++;
 
-        hasClaimedNFT[msg.sender][tier] = true;
-        _mint(msg.sender, tier, 1, "");
+        _safeMint(msg.sender, tokenId);
     }
 
-    function setPointsContract(address _pointsContract) external onlyOwner {
-        pointsContract = IOPNPoints(_pointsContract);
+    function hasClaimedNFT(address user, uint256 tier) external view returns (bool) {
+        return hasClaimedTier[user][tier];
     }
 
-    function setOPNStaking(address _opnStaking) external onlyOwner {
-        opnStaking = IOPNNativeStaking(_opnStaking);
+    function setRequiredPoints(uint256 tier, uint256 amount) external onlyOwner {
+        require(tier >= 1 && tier <= 3, "Invalid tier");
+        requiredPoints[tier] = amount;
     }
 }

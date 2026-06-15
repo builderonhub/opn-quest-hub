@@ -46,7 +46,7 @@ contract OPNNativeStaking {
         uint256 minutesPassed =
             (block.timestamp - lastClaimTime[user]) / 1 minutes;
 
-        return (stakedAmount[user] * minutesPassed) / (10 * 1 ether);
+        return (stakedAmount[user] * minutesPassed) / (1000 * 1 ether);
     }
 
     function totalUserPoints(address user) external view returns (uint256) {

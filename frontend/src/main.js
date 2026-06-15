@@ -5,7 +5,8 @@ const CONTRACT_ADDRESS = "0x143538DC00D3C15bE393358Af029D8Ccc6323708";
 const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
-const OPN_STAKING_ADDRESS = "0x48D576bD6Ea0D311f7274DeC70219de228710770";
+const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
+const REWARD_NFT_ADDRESS = "0xa25f49A2b7ea4F5fB4fDB3B7aDb5ACc03051b535";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -14,11 +15,15 @@ const ABI = [
   "function canCheckIn(address user) view returns(bool)",
   "function completeQuest(uint256 questId, uint256 reward)",
   "function hasCompletedQuest(address user, uint256 questId) view returns(bool)",
-  "function claimNFT(uint256 tier)",
   "function hasClaimedNFT(address user, uint256 tier) view returns(bool)",
-  "function tokenURI(uint256 tokenId) public view returns (string memory)",
   "function lastCheckInDay(address user) view returns (uint256)",
   "function canClaimFaucet(address user) view returns(bool)"
+];
+
+const REWARD_NFT_ABI = [
+  "function totalPoints(address user) view returns (uint256)",
+  "function claimNFT(uint256 tier)",
+  "function hasClaimedNFT(address user, uint256 tier) view returns (bool)"
 ];
 
 const OQH_TOKEN_ABI = [
@@ -218,12 +223,14 @@ const statusText = document.getElementById("status");
 const openedQuests = {};
 let signer;
 let contract;
+let rewardNFTContract;
 let userAddress;
 let countdownTimer;
 let opnToken;
 let opnVault;
 let opnStakingContract;
 let opntTokenContract;
+let isRenderingNFTRewards = false;
 
 function randomPoints() {
   const rewards = [10, 20, 30, 40, 50];
@@ -454,6 +461,12 @@ connectBtn.onclick = async () => {
         signer
       );
 
+    rewardNFTContract = new ethers.Contract(
+        REWARD_NFT_ADDRESS,
+        REWARD_NFT_ABI,
+        signer
+      );
+
       opnVault = new ethers.Contract(
         OQH_VAULT_ADDRESS,
         OQH_VAULT_ABI,
@@ -484,6 +497,7 @@ connectBtn.onclick = async () => {
     await renderDeFiVault();
     await updateFaucetStatus();
     await renderOPNStaking();
+    
    
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
@@ -594,43 +608,64 @@ const ONCHAIN_QUESTS = [
 ];
 
 let isRenderingQuests = false;
-async function renderQuests() {
-  if (isRenderingQuests) return;
-  isRenderingQuests = true;
+let shouldRenderQuestsAgain = false;
 
-  const questBox = document.getElementById("quests");
-  if (!questBox || !contract || !userAddress) {
-    isRenderingQuests = false;
+async function renderQuests() {
+  if (isRenderingQuests) {
+    shouldRenderQuestsAgain = true;
     return;
   }
 
-  questBox.innerHTML = "";
-  const uniqueQuests = quests.filter(
-    (quest, index, self) =>
-      index === self.findIndex((q) => q.id === quest.id)
-  );
-  for (const quest of uniqueQuests) {
-    const done = await contract.hasCompletedQuest(userAddress, quest.id);
+  isRenderingQuests = true;
 
-    const div = document.createElement("div");
-    div.className = "quest-card";
+  const questBox = document.getElementById("quests");
 
-    div.innerHTML = `
-      <h3>${quest.title}</h3>
-      <p>Reward: +${quest.reward} points</p>
+  try {
+    if (!questBox || !contract || !userAddress) return;
 
-      <button onclick="doQuest(${quest.id}, '${quest.url}')">
-        Do Quest
-      </button>
+    questBox.innerHTML = "";
 
-      <button id="completeQuestBtn${quest.id}" ${done ? "disabled" : "disabled"} onclick="completeQuest(${quest.id}, ${quest.reward})">
-        ${done ? "Completed" : "Complete Quest"}
-      </button>
-    `;
+    const uniqueQuests = quests.filter(
+      (quest, index, self) =>
+        index === self.findIndex((q) => q.id === quest.id)
+    );
 
-    questBox.appendChild(div);
+    const htmlParts = [];
+
+    for (const quest of uniqueQuests) {
+      const done = await contract.hasCompletedQuest(userAddress, quest.id);
+
+      htmlParts.push(`
+        <div class="quest-card">
+          <h3>${quest.title}</h3>
+          <p>Reward: +${quest.reward} points</p>
+
+          <button onclick="doQuest(${quest.id}, '${quest.url}')">
+            Do Quest
+          </button>
+
+          <button
+            id="completeQuestBtn${quest.id}"
+            disabled
+            onclick="completeQuest(${quest.id}, ${quest.reward})"
+          >
+            ${done ? "Completed" : "Complete Quest"}
+          </button>
+        </div>
+      `);
+    }
+
+    questBox.innerHTML = htmlParts.join("");
+  } finally {
+    isRenderingQuests = false;
+
+    if (shouldRenderQuestsAgain) {
+      shouldRenderQuestsAgain = false;
+      await renderQuests();
+    }
   }
 }
+
 window.doQuest = function (questId, url) {
   openedQuests[questId] = true;
   window.open(url, "_blank");
@@ -728,74 +763,75 @@ const nftRewards = [
 ];
 
 async function renderNFTRewards() {
+  if (isRenderingNFTRewards) return;
+  isRenderingNFTRewards = true;
   const box = document.getElementById("nftRewards");
-  if (!box || !contract || !userAddress) return;
+
+  if (!box || !contract || !rewardNFTContract || !userAddress) return;
 
   box.innerHTML = "";
 
-    const questPoints = Number(await contract.getPoints(userAddress));
-
-  let stakingPoints = 0;
+  let points = 0;
 
   try {
-    const { opnStaking } = await getDeFiContracts();
-    stakingPoints = Number(
-      await opnStaking.claimedPoints(userAddress)
-    );
+    points = Number(await rewardNFTContract.totalPoints(userAddress));
   } catch (err) {
-    console.error("Load claimed staking points failed", err);
+    console.error("Load reward NFT total points failed", err);
+    points = Number(await contract.getPoints(userAddress));
   }
 
-  const points = questPoints + stakingPoints;
   const imageMap = {
     1: "/bronze.png",
     2: "/silver.png",
     3: "/gold.png",
   };
-      const uniqueNFTRewards = nftRewards.filter(
-      (nft, index, self) =>
-        index === self.findIndex((item) => item.tier === nft.tier)
-    );
 
-    for (const nft of uniqueNFTRewards) {
-    const claimed = await contract.hasClaimedNFT(userAddress, nft.tier);
+  const uniqueNFTRewards = nftRewards.filter(
+    (nft, index, self) =>
+      index === self.findIndex((item) => item.tier === nft.tier)
+  );
+
+  for (const nft of uniqueNFTRewards) {
+    const claimed = await rewardNFTContract.hasClaimedNFT(userAddress, nft.tier);
     const eligible = points >= nft.required;
 
     const div = document.createElement("div");
     div.className = "quest-card";
-  let buttonText = "";
-  let buttonDisabled = "";
 
-  if (claimed) {
-    buttonText = "Claimed";
-    buttonDisabled = "disabled";
-  } else if (!eligible) {
-    buttonText = "Not enough points";
-    buttonDisabled = "disabled";
-  } else {
-    buttonText = "Claim NFT";
-  }
-  div.innerHTML = `
-    <div class="nft-row">
-      <div>
-        <h3>${nft.title}</h3>
-        <p>Required: ${nft.required} points</p>
+    let buttonText = "";
+    let buttonDisabled = "";
+
+    if (claimed) {
+      buttonText = "Claimed";
+      buttonDisabled = "disabled";
+    } else if (!eligible) {
+      buttonText = "Not enough points";
+      buttonDisabled = "disabled";
+    } else {
+      buttonText = "Claim NFT";
+    }
+
+    div.innerHTML = `
+      <div class="nft-row">
+        <div>
+          <h3>${nft.title}</h3>
+          <p>Required: ${nft.required} points</p>
+        </div>
+
+        <img
+          class="nft-thumb"
+          src="${imageMap[nft.tier]}"
+          alt="${nft.title}"
+        />
       </div>
 
-      <img
-        class="nft-thumb"
-        src="${imageMap[nft.tier]}"
-        alt="${nft.title}"
-      />
-    </div>
-
-        <button
-      ${buttonDisabled}
-      onclick="claimNFTReward(${nft.tier})"
-    >
-      ${buttonText}
-    </button>
-  `;
+      <button
+        ${buttonDisabled}
+        onclick="claimNFTReward(${nft.tier})"
+      >
+        ${buttonText}
+      </button>
+    `;
 
     box.appendChild(div);
   }
@@ -805,7 +841,7 @@ window.claimNFT = async function (tier) {
   try {
     statusText.innerText = "Claiming NFT... Waiting for wallet signature.";
 
-    const tx = await contract.claimNFT(tier);
+    const tx = await rewardNFTContract.claimNFT(tier);
     await tx.wait();
 
     await renderNFTRewards();
@@ -890,9 +926,9 @@ async function renderDeFiVault() {
     let boostPercent = 0;
 
     try {
-      const hasGold = await contract.hasClaimedNFT(userAddress, 3);
-      const hasSilver = await contract.hasClaimedNFT(userAddress, 2);
-      const hasBronze = await contract.hasClaimedNFT(userAddress, 1);
+      const hasGold = await rewardNFTContract.hasClaimedNFT(userAddress, 3);
+      const hasSilver = await rewardNFTContract.hasClaimedNFT(userAddress, 2);
+      const hasBronze = await rewardNFTContract.hasClaimedNFT(userAddress, 1);
 
       if (hasGold) {
         boostPercent = 50;
@@ -1177,7 +1213,7 @@ async function claimNFTReward(tier) {
   console.log("Claim NFT clicked:", tier);
 
   try {
-    const tx = await contract.claimNFT(tier);
+    const tx = await rewardNFTContract.claimNFT(tier);
     await tx.wait();
 
     console.log("NFT claimed");
