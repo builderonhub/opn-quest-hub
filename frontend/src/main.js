@@ -61,6 +61,24 @@ const ERC20_ABI = [
 ];
 
 document.querySelector("#app").innerHTML = `
+  
+  <div class="project-banner">
+    <div>
+      <span class="banner-badge">S1 Builder Contest · DeFi & Open Finance</span>
+      <h2>OPN Quest Hub</h2>
+      <p>
+        Your journey across the IOPN ecosystem starts here.</p>
+        Complete quests, earn on-chain points, unlock NFT rewards, stake OQH and OPN, and compete on a free-for-all leaderboard where every rank is earned through real activity.
+      </p>
+    </div>
+
+    <div class="banner-stats">
+      <div>🏆 Leaderboard</div>
+      <div>🎖 NFT Rewards</div>
+      <div>⛓ On-chain Verified</div>
+    </div>
+  </div>
+
   <main class="container">
   <div class="dashboard">
     <div class="card checkin-card">
@@ -1292,16 +1310,12 @@ async function renderLeaderboard() {
     const rows = [];
 
     for (const wallet of wallets) {
-      const questPoints = Number(
-        await contract.getPoints(wallet)
-      );
+      const questPoints = Number(await contract.getPoints(wallet));
 
       let opnStakePoints = 0;
 
       try {
-        opnStakePoints = Number(
-          await opnStaking.claimedPoints(wallet)
-        );
+        opnStakePoints = Number(await opnStaking.claimedPoints(wallet));
       } catch (err) {
         console.error("Load OPN staking points failed", wallet, err);
       }
@@ -1309,9 +1323,15 @@ async function renderLeaderboard() {
       const totalPoints = questPoints + opnStakePoints;
 
       if (totalPoints > 0) {
+        let badge = "Newbie";
+        if (totalPoints >= 1000) badge = "Gold";
+        else if (totalPoints >= 500) badge = "Silver";
+        else if (totalPoints >= 100) badge = "Bronze";
+
         rows.push({
           wallet,
           points: totalPoints,
+          badge,
         });
       }
     }
@@ -1326,24 +1346,67 @@ async function renderLeaderboard() {
     }
 
     rows.sort((a, b) => b.points - a.points);
+
+    const currentUserIndex = userAddress
+      ? rows.findIndex(
+          (item) => item.wallet.toLowerCase() === userAddress.toLowerCase()
+        )
+      : -1;
+
+    const currentUserRank =
+      currentUserIndex >= 0 ? currentUserIndex + 1 : null;
+
     const topRows = rows.slice(0, 20);
 
-    box.innerHTML = topRows
-      .map(
-        (item, index) => `
-          <div class="leaderboard-row">
-            <div>
-              <div class="leaderboard-rank">#${index + 1}</div>
-              <div class="leaderboard-wallet">${shortWallet(item.wallet)}</div>
-            </div>
+    const rankIcon = (rank) => {
+      if (rank === 1) return "🥇";
+      if (rank === 2) return "🥈";
+      if (rank === 3) return "🥉";
+      return `#${rank}`;
+    };
 
-            <div class="leaderboard-points">
-              ${item.points} pts
+    const yourRankHtml = userAddress
+      ? `
+        <div class="your-rank-box">
+          ${
+            currentUserRank
+              ? `Your Rank: #${currentUserRank}`
+              : "Your Rank: Not ranked yet"
+          }
+        </div>
+      `
+      : "";
+
+    box.innerHTML =
+      yourRankHtml +
+      topRows
+        .map((item, index) => {
+          const rank = index + 1;
+          const isMe =
+            userAddress &&
+            item.wallet.toLowerCase() === userAddress.toLowerCase();
+
+          return `
+            <div class="leaderboard-row ${isMe ? "leaderboard-me" : ""}">
+              <div class="leaderboard-left">
+                <div class="leaderboard-rank">${rankIcon(rank)}</div>
+
+                <div>
+                  <div class="leaderboard-wallet">
+                    ${shortWallet(item.wallet)}
+                    ${isMe ? `<span class="you-label">You</span>` : ""}
+                  </div>
+                  <div class="leaderboard-badge">${item.badge}</div>
+                </div>
+              </div>
+
+              <div class="leaderboard-points">
+                ${item.points} pts
+              </div>
             </div>
-          </div>
-        `
-      )
-      .join("");
+          `;
+        })
+        .join("");
   } catch (err) {
     console.error("Leaderboard error:", err);
     box.innerHTML = "Failed to load leaderboard";
