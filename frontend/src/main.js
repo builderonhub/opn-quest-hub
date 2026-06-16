@@ -1655,53 +1655,34 @@ if (topConnectBtn) {
 
 async function renderWalletStats() {
   try {
-    if (!userAddress || !window.ethereum) return;
+    if (!userAddress) return;
 
     const txEl = document.getElementById("walletTxCount");
     const daysEl = document.getElementById("walletDays");
     const questsEl = document.getElementById("questsCompleted");
 
-    // Total TX
-    try {
-      const txCountHex = await window.ethereum.request({
-        method: "eth_getTransactionCount",
-        params: [userAddress, "latest"],
-      });
+    const iopnProvider = new ethers.JsonRpcProvider(
+      "https://testnet-rpc2.iopn.tech"
+    );
 
-      const txCount = parseInt(txCountHex, 16);
+    const txCount = await iopnProvider.getTransactionCount(
+      userAddress,
+      "latest"
+    );
 
-      if (txEl) {
-        txEl.innerText = txCount;
-      }
+    if (txEl) txEl.innerText = txCount;
+    if (daysEl) daysEl.innerText = txCount > 0 ? "Active" : "0";
 
-      if (daysEl) {
-        daysEl.innerText = txCount > 0 ? "Active" : "0";
-      }
-    } catch (err) {
-      console.error("Load wallet tx failed:", err);
-    }
-
-    // Quests Done
     let completed = 0;
 
     if (contract && Array.isArray(quests)) {
       for (const quest of quests) {
-        try {
-          const done = await contract.hasCompletedQuest(
-            userAddress,
-            quest.id
-          );
-
-          if (done) completed++;
-        } catch (err) {
-          console.error("Load quest done failed:", quest.id, err);
-        }
+        const done = await contract.hasCompletedQuest(userAddress, quest.id);
+        if (done) completed++;
       }
     }
 
-    if (questsEl) {
-      questsEl.innerText = completed;
-    }
+    if (questsEl) questsEl.innerText = completed;
   } catch (err) {
     console.error("renderWalletStats error:", err);
   }
