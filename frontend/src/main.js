@@ -1020,17 +1020,31 @@ async function renderDeFiVault() {
     console.log("renderDeFiVault running");
     console.log("userAddress:", userAddress);
 
-    const { opnToken, opnVault } = await getDeFiContracts();
+  const { opnToken, opnVault } = await getDeFiContracts();
 
-    console.log("OQH token address:", opnToken.target);
-    console.log("OQH vault address:", opnVault.target);
+  const readProvider = new ethers.JsonRpcProvider(
+    "https://testnet-rpc2.iopn.tech"
+  );
 
-    const balance = await opnToken.balanceOf(userAddress);
-    const totalOQHStaked = await opnToken.balanceOf(OQH_VAULT_ADDRESS);
-    const staked = await opnVault.stakedAmount(userAddress);
-    const reward = await opnVault.pendingReward(userAddress);
+  const oqhTokenRead = new ethers.Contract(
+    OQH_TOKEN_ADDRESS,
+    OQH_TOKEN_ABI,
+    readProvider
+  );
+
+  const oqhVaultRead = new ethers.Contract(
+    OQH_VAULT_ADDRESS,
+    OQH_VAULT_ABI,
+    readProvider
+  );
+
+  const balance = await oqhTokenRead.balanceOf(userAddress);
+  const totalOQHStaked = await oqhTokenRead.balanceOf(OQH_VAULT_ADDRESS);
+  const staked = await oqhVaultRead.stakedAmount(userAddress);
+  const reward = await oqhVaultRead.pendingReward(userAddress);
+
+
     let boostPercent = 0;
-
     try {
       const hasGold = await rewardNFTContract.hasClaimedNFT(userAddress, 3);
       const hasSilver = await rewardNFTContract.hasClaimedNFT(userAddress, 2);
