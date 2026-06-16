@@ -359,6 +359,11 @@ function formatTime(ms) {
 async function startCountdown() {
   clearInterval(countdownTimer);
 
+  const countdownText = document.getElementById("countdownText");
+  const checkInBtn = document.getElementById("checkInBtn");
+
+  if (!countdownText || !checkInBtn) return;
+
   if (!userAddress || !contract) {
     countdownText.innerText = "Connect Wallet";
     return;
@@ -380,10 +385,6 @@ async function startCountdown() {
   }
 
   function updateCountdown() {
-      const countdownText = document.getElementById("countdownText");
-      const checkInBtn = document.getElementById("checkInBtn");
-
-      if (!countdownText || !checkInBtn) return;
     const now = new Date();
     const nextUTC = new Date(now);
 
@@ -576,11 +577,11 @@ connectBtn.onclick = async () => {
     await renderQuests();
     await renderOnchainQuests();
     await renderNFTRewards();
-    await startCountdown();
+    //await startCountdown();
     await renderDeFiVault();
     await updateFaucetStatus();
     await renderOPNStaking();
-    
+    await renderGlobalStakingStats();
    
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
@@ -1699,5 +1700,49 @@ async function renderWalletStats() {
     if (questsEl) questsEl.innerText = completed;
   } catch (err) {
     console.error("renderWalletStats error:", err);
+  }
+}
+async function renderGlobalStakingStats() {
+  try {
+    console.log("renderGlobalStakingStats running");
+
+    const readProvider = new ethers.JsonRpcProvider(
+      "https://testnet-rpc2.iopn.tech"
+    );
+
+    const oqhTokenRead = new ethers.Contract(
+      OQH_TOKEN_ADDRESS,
+      OQH_TOKEN_ABI,
+      readProvider
+    );
+
+    const opnStakingRead = new ethers.Contract(
+      OPN_STAKING_ADDRESS,
+      OPN_STAKING_ABI,
+      readProvider
+    );
+
+    const totalOQHStaked =
+      await oqhTokenRead.balanceOf(OQH_VAULT_ADDRESS);
+
+    const totalOPNStaked =
+      await opnStakingRead.totalStaked();
+
+    console.log("Global OQH:", ethers.formatEther(totalOQHStaked));
+    console.log("Global OPN:", ethers.formatEther(totalOPNStaked));
+
+    const oqhEl = document.getElementById("totalOQHStaked");
+    if (oqhEl) {
+      oqhEl.innerText =
+        Number(ethers.formatEther(totalOQHStaked)).toFixed(2);
+    }
+
+    const opnEl = document.getElementById("opnTotalStaked");
+    if (opnEl) {
+      opnEl.innerText =
+        Number(ethers.formatEther(totalOPNStaked)).toFixed(2);
+    }
+  } catch (err) {
+    console.error("renderGlobalStakingStats error:", err);
   }
 }
