@@ -752,3 +752,123 @@ section {
   align-items: center;
   justify-content: center;
 }
+.swap-card {
+  scroll-margin-top: 240px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.coming-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(24, 224, 208, 0.12);
+  border: 1px solid rgba(24, 224, 208, 0.35);
+  color: #20f0df;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.swap-desc {
+  color: #bfc8ff;
+  margin: 10px 0 18px;
+  line-height: 1.5;
+}
+
+.swap-panel {
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.swap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.swap-row span {
+  display: block;
+  color: #9fa8d8;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.swap-row b {
+  color: #fff;
+  font-size: 20px;
+}
+
+.swap-row input {
+  width: 55%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  text-align: right;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.swap-switch {
+  width: 42px;
+  height: 42px;
+  margin: 12px auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #18e0d0, #8b5cf6);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.swap-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.swap-actions button {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.market-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 24px 0 18px;
+}
+
+.market-strip div {
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 18px;
+  padding: 18px 22px;
+}
+
+.market-strip span {
+  display: block;
+  color: #9fa8d8;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.market-strip b {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+}

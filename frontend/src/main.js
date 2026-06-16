@@ -74,9 +74,11 @@ document.querySelector("#app").innerHTML = `
       <nav class="nav-links">
         <button onclick="scrollToSection('quests')">Quests</button>
         <button onclick="scrollToSection('onchainQuests')">On-chain</button>
+        <button onclick="scrollToSection('swap')">Swap / Liquidity</button>
         <button onclick="scrollToSection('nftRewards')">NFTs</button>
         <button onclick="scrollToSection('leaderboardList')">Leaderboard</button>
         <button onclick="scrollToSection('referralLink')">Referral</button>
+        
       </nav>
 
       <div class="nav-actions">
@@ -97,11 +99,11 @@ document.querySelector("#app").innerHTML = `
     </section>
 
     <section class="stats-row">
-      <div class="stat-card">
-        <span>My Points</span>
-        <b id="totalPointsStat">0</b>
-        <small>On-chain</small>
-      </div>
+    <div class="stat-card">
+      <span>OPN / OQH Rate</span>
+      <b>1 OPN = 500 OQH</b>
+      <small>Demo Rate</small>
+    </div>
 
     <div class="stat-card">
       <span>Total Staked</span>
@@ -255,6 +257,42 @@ document.querySelector("#app").innerHTML = `
         <button onclick="stakeOPN()">Stake OQH</button>
         <button onclick="claimVaultReward()">Claim Reward</button>
         <button onclick="withdrawOPN()">Withdraw</button>
+      </div>
+            
+      <div id="swap" class="card quest-card-main swap-card">
+        <div class="section-header">
+          <h2>OQH ↔ OPN Swap</h2>
+          <span class="coming-pill">Coming Soon</span>
+        </div>
+
+        <p class="swap-desc">
+          Preview swap and liquidity features for the OPN Quest Hub ecosystem.
+        </p>
+
+        <div class="swap-panel">
+          <div class="swap-row">
+            <div>
+              <span>From</span>
+              <b>OQH</b>
+            </div>
+            <input type="number" placeholder="0.00" disabled />
+          </div>
+
+          <div class="swap-switch">⇅</div>
+
+          <div class="swap-row">
+            <div>
+              <span>To</span>
+              <b>OPN</b>
+            </div>
+            <input type="number" placeholder="0.00" disabled />
+          </div>
+        </div>
+
+        <div class="swap-actions">
+          <button disabled>Swap Coming Soon</button>
+          <button disabled>Add Liquidity Soon</button>
+        </div>
       </div>
 
       <div class="card quest-card-main">
