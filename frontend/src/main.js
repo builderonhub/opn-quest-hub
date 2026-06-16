@@ -6,7 +6,7 @@ const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
-const REWARD_NFT_ADDRESS = "0xa25f49A2b7ea4F5fB4fDB3B7aDb5ACc03051b535";
+const REWARD_NFT_ADDRESS = "0x9F15713Bd21D45d7506a127acD2d0f819D61141E";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -23,17 +23,19 @@ const ABI = [
 const REWARD_NFT_ABI = [
   "function totalPoints(address user) view returns (uint256)",
   "function claimNFT(uint256 tier)",
-  "function hasClaimedNFT(address user, uint256 tier) view returns (bool)"
+  "function hasClaimedNFT(address user, uint256 tier) view returns (bool)",
+  "function requiredPoints(uint256 tier) view returns (uint256)",
+  "function mintCost(uint256 tier) view returns (uint256)"
 ];
 
 const OQH_TOKEN_ABI = [
   "function claimTestOPN()",
-  "function balanceOf(address user) view returns(uint256)",
-  "function approve(address spender, uint256 amount)",
-  "function decimals() view returns(uint8)",
-  "function canClaimFaucet(address user) view returns(bool)"
+  "function balanceOf(address account) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function canClaimFaucet(address user) view returns (bool)"
 ];
-
 const OQH_VAULT_ABI = [
   "function stake(uint256 amount)",
   "function withdraw()",
@@ -901,83 +903,111 @@ window.completeQuest = async function (questId, reward) {
 };
 
 const nftRewards = [
-  { tier: 1, title: "Bronze NFT", required: 100 },
-  { tier: 2, title: "Silver NFT", required: 500 },
-  { tier: 3, title: "Gold NFT", required: 1000 },
+  {
+    tier: 1,
+    title: "Bronze NFT",
+    required: 100,
+    cost: "1000",
+    boost: "+10%",
+    image: "/bronze.png",
+  },
+  {
+    tier: 2,
+    title: "Silver NFT",
+    required: 500,
+    cost: "5000",
+    boost: "+25%",
+    image: "/silver.png",
+  },
+  {
+    tier: 3,
+    title: "Gold NFT",
+    required: 1000,
+    cost: "10000",
+    boost: "+50%",
+    image: "/gold.png",
+  },
 ];
 
 async function renderNFTRewards() {
   if (isRenderingNFTRewards) return;
   isRenderingNFTRewards = true;
+
   const box = document.getElementById("nftRewards");
 
-  if (!box || !contract || !rewardNFTContract || !userAddress) return;
-
-  box.innerHTML = "";
-
-  let points = 0;
-
   try {
-    points = Number(await rewardNFTContract.totalPoints(userAddress));
-  } catch (err) {
-    console.error("Load reward NFT total points failed", err);
-    points = Number(await contract.getPoints(userAddress));
-  }
+    if (!box || !contract || !rewardNFTContract || !userAddress) return;
 
-  const imageMap = {
-    1: "/bronze.png",
-    2: "/silver.png",
-    3: "/gold.png",
-  };
+    box.innerHTML = "";
 
-  const uniqueNFTRewards = nftRewards.filter(
-    (nft, index, self) =>
-      index === self.findIndex((item) => item.tier === nft.tier)
-  );
+    let points = 0;
 
-  for (const nft of uniqueNFTRewards) {
-    const claimed = await rewardNFTContract.hasClaimedNFT(userAddress, nft.tier);
-    const eligible = points >= nft.required;
-
-    const div = document.createElement("div");
-    div.className = "quest-card";
-
-    let buttonText = "";
-    let buttonDisabled = "";
-
-    if (claimed) {
-      buttonText = "Claimed";
-      buttonDisabled = "disabled";
-    } else if (!eligible) {
-      buttonText = "Not enough points";
-      buttonDisabled = "disabled";
-    } else {
-      buttonText = "Claim NFT";
+    try {
+      points = Number(await rewardNFTContract.totalPoints(userAddress));
+    } catch (err) {
+      console.error("Load reward NFT total points failed", err);
+      points = Number(await contract.getPoints(userAddress));
     }
 
-    div.innerHTML = `
-      <div class="nft-row">
-        <div>
-          <h3>${nft.title}</h3>
-          <p>Required: ${nft.required} points</p>
+    const uniqueNFTRewards = nftRewards.filter(
+      (nft, index, self) =>
+        index === self.findIndex((item) => item.tier === nft.tier)
+    );
+
+    for (const nft of uniqueNFTRewards) {
+      const claimed = await rewardNFTContract.hasClaimedNFT(
+        userAddress,
+        nft.tier
+      );
+
+      const eligible = points >= nft.required;
+
+      const div = document.createElement("div");
+      div.className = "quest-card";
+
+      let buttonText = "";
+      let buttonDisabled = "";
+
+      if (claimed) {
+        buttonText = "Claimed";
+        buttonDisabled = "disabled";
+      } else if (!eligible) {
+        buttonText = "Not enough points";
+        buttonDisabled = "disabled";
+      } else {
+        buttonText = `Mint ${nft.title}`;
+      }
+
+      div.innerHTML = `
+        <div class="nft-row">
+          <div>
+            <h3>${nft.title}</h3>
+            <p>Requirement: ${nft.required} Points</p>
+            <p>Mint Cost: ${nft.cost} OQH</p>
+            <p>Boost: ${nft.boost}</p>
+          </div>
+
+          <img
+            class="nft-thumb"
+            src="${nft.image}"
+            alt="${nft.title}"
+          />
         </div>
 
-        <img
-          class="nft-thumb"
-          src="${imageMap[nft.tier]}"
-          alt="${nft.title}"
-        />
-      </div>
+        <button
+          ${buttonDisabled}
+          onclick="mintRewardNFT(${nft.tier}, '${nft.cost}')"
+        >
+          ${buttonText}
+        </button>
+      `;
 
-      <button
-        ${buttonDisabled}
-        onclick="claimNFTReward(${nft.tier})"
-      >
-        ${buttonText}
-      </button>
-    `;
-
-    box.appendChild(div);
+      box.appendChild(div);
+    }
+  } catch (err) {
+    console.error("Render NFT rewards failed", err);
+  } finally {
+    isRenderingNFTRewards = false;
   }
 }
 
@@ -1398,21 +1428,45 @@ function openOPNFaucet() {
   window.open("https://faucet.iopn.tech/", "_blank");
 }
 
-async function claimNFTReward(tier) {
-  console.log("Claim NFT clicked:", tier);
+async function mintRewardNFT(tier, cost) {
+  console.log("Mint NFT clicked:", tier, cost);
 
   try {
+    if (!rewardNFTContract || !opnToken || !userAddress) {
+      console.error("Missing contract or wallet");
+      return;
+    }
+
+    const amount = ethers.parseUnits(cost, 18);
+
+    console.log("Approving OQH...");
+
+    const approveTx = await opnToken.approve(
+      REWARD_NFT_ADDRESS,
+      amount
+    );
+
+    console.log("Approve tx:", approveTx.hash);
+
+    await approveTx.wait();
+
+    console.log("Approve confirmed");
+    console.log("Minting NFT now...");
+
     const tx = await rewardNFTContract.claimNFT(tier);
+
+    console.log("Mint tx:", tx.hash);
+
     await tx.wait();
 
-    console.log("NFT claimed");
+    console.log("NFT minted and OQH burned");
 
     await refreshPoints();
     await renderLeaderboard();
     await renderNFTRewards();
     await renderDeFiVault();
   } catch (err) {
-    console.error("Claim NFT failed", err);
+    console.error("Mint NFT failed", err);
   }
 }
 
@@ -1420,7 +1474,7 @@ window.openOPNFaucet = openOPNFaucet;
 window.stakeOPNT = stakeOPNT;
 window.claimOPNStakingPoints = claimOPNStakingPoints;
 window.withdrawOPNT = withdrawOPNT;
-window.claimNFTReward = claimNFTReward;
+window.mintRewardNFT = mintRewardNFT;
 
 const LEADERBOARD_STORAGE_KEY = "opn_leaderboard_wallets";
 

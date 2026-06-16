@@ -4,37 +4,13 @@
 
 OPN Quest Hub is a gamified Web3 engagement platform built on the IOPN Testnet.
 
-The platform transforms on-chain participation into a rewarding experience by combining quests, NFT achievements, staking rewards, referral incentives, and reputation building into a unified ecosystem.
+The platform transforms on-chain participation into a rewarding experience by combining quests, NFT achievements, staking rewards, referral incentives, reputation building, and DeFi participation into a unified ecosystem.
 
 Users can complete quests, earn verifiable on-chain points, unlock achievement NFTs, stake ecosystem assets, participate in DeFi activities, and climb a transparent leaderboard where every reward is earned through activity.
 
 ---
 
-## Why OPN Quest Hub?
-
-Many blockchain ecosystems face the same challenge:
-
-* Users join but do not stay active
-* Community participation is difficult to measure
-* Contributions are rarely rewarded transparently
-* Ecosystem engagement lacks incentives
-
-OPN Quest Hub solves these problems by creating an engagement and reward layer for the IOPN ecosystem.
-
-The platform introduces:
-
-* On-chain quests
-* NFT achievement progression
-* DeFi staking incentives
-* Referral-based growth
-* Activity rewards
-* Public reputation tracking
-
-Every achievement, reward, and milestone is recorded on-chain.
-
----
-
-## Live Demo
+# Live Demo
 
 Frontend:
 
@@ -46,10 +22,35 @@ https://github.com/builderonhub/opn-quest-hub
 
 ---
 
-## Network
+# Network
 
 * Network: IOPN Testnet
 * Chain ID: 984
+
+---
+
+# Why OPN Quest Hub?
+
+Many blockchain ecosystems face the same challenges:
+
+* Users join but do not stay active
+* Community participation is difficult to measure
+* Contributions are rarely rewarded transparently
+* Ecosystem engagement lacks incentives
+
+OPN Quest Hub solves these problems by creating a participation and reward layer for the IOPN ecosystem.
+
+The platform introduces:
+
+* On-chain Quests
+* NFT Achievement Progression
+* DeFi Staking Incentives
+* Referral-Based Growth
+* Activity Rewards
+* Reputation Tracking
+* Token Utility
+
+Every achievement, reward, and milestone is verifiable on-chain.
 
 ---
 
@@ -59,6 +60,12 @@ https://github.com/builderonhub/opn-quest-hub
 
 ✅ NFT Achievement Progression
 
+✅ NFT Economy V2
+
+✅ OQH Burn Mechanism
+
+✅ Sustainable Token Sink
+
 ✅ DeFi Staking Utilities
 
 ✅ Native OPN Integration
@@ -66,8 +73,6 @@ https://github.com/builderonhub/opn-quest-hub
 ✅ Referral Reward System
 
 ✅ Activity-Based Incentives
-
-✅ Free-To-Participate Model
 
 ✅ MetaMask + OKX Wallet Support
 
@@ -89,7 +94,15 @@ On-Chain Points
 
 ↓
 
-NFT Achievement Unlocks
+NFT Eligibility
+
+↓
+
+OQH Burn
+
+↓
+
+NFT Achievement Unlock
 
 ↓
 
@@ -121,31 +134,6 @@ Responsibilities:
 
 ---
 
-## OPN Reward NFT
-
-Contract:
-
-0xa25f49A2b7ea4F5fB4fDB3B7aDb5ACc03051b535
-
-Responsibilities:
-
-* Bronze NFT
-* Silver NFT
-* Gold NFT
-* Achievement Validation
-* NFT Ownership Tracking
-
-NFT eligibility is calculated using:
-
-solidity
-totalPoints =
-    getPoints(user)
-    +
-    claimedPoints(user);
-
-
----
-
 ## OQH Token
 
 Contract:
@@ -156,6 +144,7 @@ Features:
 
 * ERC20 Token
 * Daily Faucet
+* NFT Mint Utility
 * Staking Utility
 
 ---
@@ -195,6 +184,117 @@ Features:
 
 ---
 
+## OPN Reward NFT
+
+Contract:
+
+0x9F15713Bd21D45d7506a127acD2d0f819D61141E
+
+Responsibilities:
+
+* Bronze NFT
+* Silver NFT
+* Gold NFT
+* NFT Achievement Validation
+* OQH Burn-Based Minting
+* NFT Ownership Tracking
+
+NFT eligibility is calculated using:
+
+totalPoints =
+getPoints(user)
++
+claimedPoints(user)
+
+---
+
+# NFT Economy V2
+
+NFTs are no longer free.
+
+Users must satisfy two requirements:
+
+## Requirement 1 — Participation
+
+Points act as proof of ecosystem contribution.
+
+### Bronze NFT
+
+* 100 Points
+
+### Silver NFT
+
+* 500 Points
+
+### Gold NFT
+
+* 1000 Points
+
+---
+
+## Requirement 2 — OQH Mint Fee
+
+OQH acts as the NFT mint fee.
+
+### Bronze NFT
+
+* 1000 OQH
+
+### Silver NFT
+
+* 5000 OQH
+
+### Gold NFT
+
+* 10000 OQH
+
+---
+
+When an NFT is minted:
+
+* OQH is permanently burned
+* NFT is minted to the user
+* NFT staking boosts become active
+
+---
+
+# Token Flow
+
+Quest Activity
+
+↓
+
+Earn Points
+
+↓
+
+Stake OQH
+
+↓
+
+Earn OQH
+
+↓
+
+Burn OQH
+
+↓
+
+Mint NFT
+
+↓
+
+Receive Staking Boost
+
+Benefits:
+
+* Creates a permanent OQH token sink
+* Reduces inflation pressure
+* Connects DeFi participation with NFT progression
+* Encourages long-term ecosystem engagement
+
+---
+
 # Features
 
 ## Wallet Integration
@@ -226,9 +326,7 @@ Point Sources:
 
 Functions:
 
-solidity
 getPoints(address)
-
 
 ---
 
@@ -246,9 +344,7 @@ Random Rewards:
 
 Functions:
 
-solidity
 canCheckIn(address)
-
 
 ---
 
@@ -269,10 +365,9 @@ Features:
 
 Functions:
 
-solidity
 completeQuest()
-hasCompletedQuest()
 
+hasCompletedQuest()
 
 ---
 
@@ -289,43 +384,6 @@ Users earn bonus rewards based on transaction activity.
 | 500          | +75    |
 | 1000         | +150   |
 | 2000         | +300   |
-
-Activity tracking uses:
-
-javascript
-provider.getTransactionCount(userAddress)
-
-
----
-
-## NFT Achievement System
-
-Users unlock achievement NFTs based on total platform participation.
-
-### Bronze NFT
-
-Requirement:
-
-* 100 Points
-
-### Silver NFT
-
-Requirement:
-
-* 500 Points
-
-### Gold NFT
-
-Requirement:
-
-* 1000 Points
-
-Features:
-
-* One-Time Claim
-* Permanent Achievement
-* On-Chain Ownership
-* DeFi Reward Boosts
 
 ---
 
@@ -375,26 +433,6 @@ Features:
 * Real-Time Reward Tracking
 * Total OQH Staked Dashboard
 
-DeFi Flow:
-
-Claim OQH
-
-↓
-
-Stake OQH
-
-↓
-
-Earn Rewards
-
-↓
-
-Claim Rewards
-
-↓
-
-Withdraw OQH
-
 ---
 
 ## Native OPN Staking
@@ -409,7 +447,7 @@ Features:
 * Personal Statistics Dashboard
 * Total OPN Staked Dashboard
 
-This mechanism connects ecosystem participation directly with platform progression.
+This mechanism directly connects ecosystem participation with platform progression.
 
 ---
 
@@ -458,6 +496,7 @@ Displays:
 * Total Points
 * Badge Rank
 * NFT Status
+* Wallet Analytics
 * OQH Statistics
 * OPN Statistics
 * Staking Information
@@ -480,6 +519,8 @@ Security Measures:
 * One-Time Referral Claims
 * Daily Faucet Limits
 * Daily Check-In Limits
+* OQH Burn Validation
+* NFT Mint Fee Validation
 
 Planned Improvements:
 
@@ -506,10 +547,12 @@ Planned Improvements:
 # Project Structure
 
 frontend/
-contracts/
-scripts/
-artifacts/
 
+contracts/
+
+scripts/
+
+artifacts/
 
 ---
 
@@ -519,7 +562,7 @@ OPN Quest Hub aims to become the engagement and reward layer of the IOPN ecosyst
 
 By combining quests, NFT achievements, staking incentives, referrals, reputation systems, and DeFi participation, the platform creates a transparent participation economy where ecosystem contributions are rewarded fully on-chain.
 
-The long-term goal is to make user engagement measurable, rewarding, and sustainable across the entire IOPN ecosystem.
+OPN Quest Hub V2 introduces a sustainable token economy where participation, staking, and NFT progression are interconnected through an OQH burn mechanism, creating long-term value for ecosystem participants.
 
 ---
 
