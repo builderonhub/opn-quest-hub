@@ -1631,9 +1631,16 @@ window.scrollToSection = function (id) {
   const el = document.getElementById(id);
   if (!el) return;
 
-  el.scrollIntoView({
+  const offset = 220;
+
+  const y =
+    el.getBoundingClientRect().top +
+    window.pageYOffset -
+    offset;
+
+  window.scrollTo({
+    top: y,
     behavior: "smooth",
-    block: "start",
   });
 };
 
