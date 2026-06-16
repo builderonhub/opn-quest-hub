@@ -128,11 +128,6 @@ document.querySelector("#app").innerHTML = `
         <p class="profile-wallet" id="wallet">Not Connected</p>
 
         <div class="profile-info-row">
-          <span>Total Points</span>
-          <b id="profileTotalPoints">0</b>
-        </div>
-
-        <div class="profile-info-row">
           <span>Badge Level</span>
           <b id="userBadge">No Badge</b>
         </div>
@@ -142,6 +137,24 @@ document.querySelector("#app").innerHTML = `
           <b class="mono">${CONTRACT_ADDRESS}</b>
         </div>
 
+        <div class="profile-stats">
+        <div class="profile-stats-box">
+         <p>
+        <span>Days on IOPN:</span>
+        <b id="walletDays">0</b>
+        </p>
+
+        <p>
+          <span>Total TX:</span>
+          <b id="walletTxCount">0</b>
+        </p>
+
+        <p>
+          <span>Quests Done:</span>
+          <b id="questsCompleted">0</b>
+        </p>
+        </div>
+  
         <button id="connectBtn" class="hidden-connect-btn">
           Connect OKX or MetaMask Wallet
         </button>
@@ -558,6 +571,7 @@ connectBtn.onclick = async () => {
 
     await updateCheckInButton();
     await refreshPoints();
+    await renderWalletStats();
     await renderLeaderboard();
     await renderQuests();
     await renderOnchainQuests();
@@ -1632,3 +1646,56 @@ if (topConnectBtn) {
   };
 }
 
+async function renderWalletStats() {
+  try {
+    if (!userAddress || !window.ethereum) return;
+
+    const txEl = document.getElementById("walletTxCount");
+    const daysEl = document.getElementById("walletDays");
+    const questsEl = document.getElementById("questsCompleted");
+
+    // Total TX
+    try {
+      const txCountHex = await window.ethereum.request({
+        method: "eth_getTransactionCount",
+        params: [userAddress, "latest"],
+      });
+
+      const txCount = parseInt(txCountHex, 16);
+
+      if (txEl) {
+        txEl.innerText = txCount;
+      }
+
+      if (daysEl) {
+        daysEl.innerText = txCount > 0 ? "Active" : "0";
+      }
+    } catch (err) {
+      console.error("Load wallet tx failed:", err);
+    }
+
+    // Quests Done
+    let completed = 0;
+
+    if (contract && Array.isArray(quests)) {
+      for (const quest of quests) {
+        try {
+          const done = await contract.hasCompletedQuest(
+            userAddress,
+            quest.id
+          );
+
+          if (done) completed++;
+        } catch (err) {
+          console.error("Load quest done failed:", quest.id, err);
+        }
+      }
+    }
+
+    if (questsEl) {
+      questsEl.innerText = completed;
+    }
+  } catch (err) {
+    console.error("renderWalletStats error:", err);
+  }
+}
