@@ -98,7 +98,7 @@ document.querySelector("#app").innerHTML = `
 
     <section class="stats-row">
       <div class="stat-card">
-        <span>Total Points</span>
+        <span>My Points</span>
         <b id="totalPointsStat">0</b>
         <small>On-chain</small>
       </div>
@@ -264,11 +264,10 @@ document.querySelector("#app").innerHTML = `
 
       </section>
     </main>
-      
-    <section class="extra-grid">      
-      
-      
-    </section>
+      <button id="backToTopBtn" onclick="scrollToTop()">
+        ↑
+      </button>
+
   </div>
 `;
 
@@ -1746,3 +1745,21 @@ async function renderGlobalStakingStats() {
     console.error("renderGlobalStakingStats error:", err);
   }
 }
+
+window.scrollToTop = function () {
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
+
+window.addEventListener("scroll", function () {
+  const btn = document.getElementById("backToTopBtn");
+  if (!btn) return;
+
+  if (window.scrollY > 500) {
+    btn.classList.add("show");
+  } else {
+    btn.classList.remove("show");
+  }
+});

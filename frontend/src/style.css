@@ -717,3 +717,38 @@ html {
 section {
   scroll-margin-top: 380px;
 }
+#backToTopBtn {
+  position: fixed;
+
+  right: 12px;   /* sát mép phải hơn */
+  bottom: 20px;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+  border: none;
+
+  background: linear-gradient(
+    135deg,
+    #18e0d0,
+    #8b5cf6
+  );
+
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: none;
+  z-index: 9999;
+
+  box-shadow: 0 8px 20px rgba(0,0,0,.3);
+}
+
+#backToTopBtn.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
