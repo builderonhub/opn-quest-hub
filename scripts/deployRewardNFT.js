@@ -2,7 +2,7 @@ const hre = require("hardhat");
 
 async function main() {
   const POINTS_CONTRACT =
-    "0x143538DC00D3C15bE393358Af029D8Ccc6323708";
+    "0xd8aFD8Ff043a0d2e364E991B9ef2df50d44aFB18";
 
   const OPN_STAKING =
     "0x4f107f185D670C28280972b34291A37bbBf9ca4A";

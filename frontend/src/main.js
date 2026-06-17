@@ -1,23 +1,25 @@
 import { ethers } from "ethers";
 import "./style.css";
 
-const CONTRACT_ADDRESS = "0x143538DC00D3C15bE393358Af029D8Ccc6323708";
+const CONTRACT_ADDRESS = "0xd8aFD8Ff043a0d2e364E991B9ef2df50d44aFB18";
 const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
-const REWARD_NFT_ADDRESS = "0x9F15713Bd21D45d7506a127acD2d0f819D61141E";
+const REWARD_NFT_ADDRESS = "0xD532a5b1B08FCec9ed4504366A8077de77bF8f2B";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
-  "function dailyCheckIn(uint256 amount)",
+  "function dailyCheckIn()",
   "function getPoints(address user) view returns(uint256)",
   "function canCheckIn(address user) view returns(bool)",
   "function completeQuest(uint256 questId, uint256 reward)",
   "function hasCompletedQuest(address user, uint256 questId) view returns(bool)",
   "function hasClaimedNFT(address user, uint256 tier) view returns(bool)",
   "function lastCheckInDay(address user) view returns (uint256)",
-  "function canClaimFaucet(address user) view returns(bool)"
+  "function canClaimFaucet(address user) view returns(bool)",
+  "function getTodayCheckInReward(address user) view returns (uint256)",
+  "function getCheckInStreak(address user) view returns (uint256)"
 ];
 
 const REWARD_NFT_ABI = [
@@ -175,9 +177,24 @@ document.querySelector("#app").innerHTML = `
               <h3>Earn Points Every Day</h3>
               <p>Check in daily and build your on-chain activity.</p>
             </div>
-
             <button id="checkInBtn">Check In</button>
           </div>
+
+          <div class="streak-container">
+            <span class="streak-label">
+              Check-in Streak:
+            </span>
+            <div class="checkin-streak-row" id="checkInStreakRow">
+              <div class="streak-day">D1</div>
+              <div class="streak-day">D2</div>
+              <div class="streak-day">D3</div>
+              <div class="streak-day">D4</div>
+              <div class="streak-day">D5</div>
+              <div class="streak-day">D6</div>
+              <div class="streak-day">D7</div>
+            </div>
+          </div>
+
         </div>
 
         <div class="card opn-stake-card">
@@ -613,6 +630,7 @@ connectBtn.onclick = async () => {
     await refreshPoints();
     await renderWalletStats();
     await renderLeaderboard();
+    await renderCheckInStreak();
     await renderQuests();
     await renderOnchainQuests();
     await renderNFTRewards();
@@ -648,31 +666,33 @@ checkInBtn.onclick = async () => {
       return;
     }
 
-    if (hasCheckedInToday()) {
-      statusText.innerText = "You have already checked in today.";
-      updateCheckInButton();
-      return;
-    }
-
-    const reward = randomPoints();
-
     checkInBtn.disabled = true;
     checkInBtn.innerText = "Checking in...";
-
-    statusText.innerText =
-      `Daily reward: +${reward} points. Waiting for wallet signature...`;
 
     const canCheck = await contract.canCheckIn(userAddress);
 
     if (!canCheck) {
-    statusText.innerText =
-    "Already checked in today (verified on-chain).";
+      statusText.innerText =
+        "Already checked in today (verified on-chain).";
 
-    updateCheckInButton();
-     return;
+      updateCheckInButton();
+      return;
     }
 
-    const tx = await contract.dailyCheckIn(reward);
+    let todayReward = 0;
+
+    try {
+      todayReward = Number(
+        await contract.getTodayCheckInReward(userAddress)
+      );
+    } catch (err) {
+      console.error("Load today check-in reward failed", err);
+    }
+
+    statusText.innerText =
+      `Today's streak reward: +${todayReward} points. Waiting for wallet signature...`;
+
+    const tx = await contract.dailyCheckIn();
 
     statusText.innerText =
       "Transaction sent: " + tx.hash.slice(0, 18) + "...";
@@ -688,12 +708,13 @@ checkInBtn.onclick = async () => {
     updateCheckInButton();
 
     statusText.innerText =
-      `Check-in successful! You earned +${reward} points.`;
+      `Check-in successful! You earned +${todayReward} points.`;
   } catch (error) {
     console.error(error);
     statusText.innerText = "Check-in failed or rejected.";
     updateCheckInButton();
   }
+
   await refreshPoints();
   await renderLeaderboard();
   await updateCheckInButton();
@@ -1855,3 +1876,27 @@ window.addEventListener("scroll", function () {
     btn.classList.remove("show");
   }
 });
+
+async function renderCheckInStreak() {
+  const row = document.getElementById("checkInStreakRow");
+
+  if (!row || !contract || !userAddress) return;
+
+  try {
+    const streak = Number(
+      await contract.getCheckInStreak(userAddress)
+    );
+
+    const days = row.querySelectorAll(".streak-day");
+
+    days.forEach((day, index) => {
+      if (index < streak) {
+        day.classList.add("active");
+      } else {
+        day.classList.remove("active");
+      }
+    });
+  } catch (err) {
+    console.error("Render check-in streak failed", err);
+  }
+}

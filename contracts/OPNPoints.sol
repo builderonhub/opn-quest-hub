@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 contract OPNPoints is ERC721 {
     mapping(address => uint256) public points;
     mapping(address => uint256) public lastCheckInDay;
+    mapping(address => uint256) public checkInStreak;
     mapping(address => mapping(uint256 => bool)) public completedQuests;
     mapping(address => mapping(uint256 => bool)) public claimedNFT;
 
@@ -33,23 +34,33 @@ contract OPNPoints is ERC721 {
 
     constructor() ERC721("OPN Quest Badge", "OPNB") {}
 
-    function dailyCheckIn(uint256 amount) public {
+    function dailyCheckIn() public {
+        uint256 today = block.timestamp / 1 days;
+
         require(
-            amount == 10 ||
-            amount == 20 ||
-            amount == 30 ||
-            amount == 40 ||
-            amount == 50,
-            "Invalid reward"
+            lastCheckInDay[msg.sender] < today,
+            "Already checked in today"
         );
 
-        uint256 today = block.timestamp / 1 days;
-        require(lastCheckInDay[msg.sender] < today, "Already checked in today");
+        uint256 streak;
 
+        if (lastCheckInDay[msg.sender] + 1 == today) {
+            streak = checkInStreak[msg.sender] + 1;
+        } else {
+            streak = 1;
+        }
+
+        if (streak > 7) {
+            streak = 1;
+        }
+
+        uint256 reward = streak * 5;
+
+        checkInStreak[msg.sender] = streak;
         lastCheckInDay[msg.sender] = today;
-        points[msg.sender] += amount;
+        points[msg.sender] += reward;
 
-        emit DailyCheckIn(msg.sender, amount, today);
+        emit DailyCheckIn(msg.sender, reward, today);
     }
 
     function completeQuest(uint256 questId, uint256 reward) public {
@@ -128,4 +139,37 @@ contract OPNPoints is ERC721 {
 
         points[referrer] += REFERRAL_REWARD;
     }
+
+    function getTodayCheckInReward(address user) public view returns (uint256) {
+    uint256 today = block.timestamp / 1 days;
+
+        if (lastCheckInDay[user] >= today) {
+            return 0;
+        }
+
+        uint256 streak;
+
+        if (lastCheckInDay[user] + 1 == today) {
+            streak = checkInStreak[user] + 1;
+        } else {
+            streak = 1;
+        }
+
+        if (streak > 7) {
+            streak = 1;
+        }
+
+            return streak * 5;
+    }
+
+    function getCheckInStreak(address user) public view returns (uint256) {
+        uint256 today = block.timestamp / 1 days;
+
+        if (lastCheckInDay[user] + 1 < today) {
+            return 0;
+        }
+
+        return checkInStreak[user];
+    }
 }
+

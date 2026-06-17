@@ -846,3 +846,53 @@ section {
   cursor: not-allowed;
 }
 
+.streak-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.streak-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 30px;
+  line-height: 30px;
+
+  font-size: 15px;
+  font-weight: 800;
+
+  margin: 0;
+  padding: 0;
+
+  background: linear-gradient(90deg, #12e6d3, #4f8cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.checkin-streak-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-day {
+  width: 46px;
+  height: 30px;
+  border-radius: 10px;
+
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0.65;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
