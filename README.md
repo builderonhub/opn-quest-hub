@@ -122,7 +122,7 @@ The platform combines gamification and DeFi mechanics to encourage long-term eco
 
 Contract:
 
-0x143538DC00D3C15bE393358Af029D8Ccc6323708
+0xd8aFD8Ff043a0d2e364E991B9ef2df50d44aFB18
 
 Responsibilities:
 
@@ -188,7 +188,7 @@ Features:
 
 Contract:
 
-0x9F15713Bd21D45d7506a127acD2d0f819D61141E
+0x06a1135A1439E14b4d69DdE6ee8D3ae1028dA88a
 
 Responsibilities:
 
@@ -334,17 +334,18 @@ getPoints(address)
 
 Users can check in once every day.
 
-Random Rewards:
+7-Day Streak System
 
-* 10 Points
-* 20 Points
-* 30 Points
-* 40 Points
-* 50 Points
+Day 1 → 5 Points
+Day 2 → 10 Points
+Day 3 → 15 Points
+Day 4 → 20 Points
+Day 5 → 25 Points
+Day 6 → 30 Points
+Day 7 → 35 Points
 
-Functions:
+Missing a day resets the streak.
 
-canCheckIn(address)
 
 ---
 
