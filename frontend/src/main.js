@@ -6,7 +6,7 @@ const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
-const REWARD_NFT_ADDRESS = "0xD532a5b1B08FCec9ed4504366A8077de77bF8f2B";
+const REWARD_NFT_ADDRESS = "0x06a1135A1439E14b4d69DdE6ee8D3ae1028dA88a";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -27,7 +27,8 @@ const REWARD_NFT_ABI = [
   "function claimNFT(uint256 tier)",
   "function hasClaimedNFT(address user, uint256 tier) view returns (bool)",
   "function requiredPoints(uint256 tier) view returns (uint256)",
-  "function mintCost(uint256 tier) view returns (uint256)"
+  "function mintCost(uint256 tier) view returns (uint256)",
+  "function totalOQHBurned() view returns (uint256)"
 ];
 
 const OQH_TOKEN_ABI = [
@@ -107,6 +108,14 @@ document.querySelector("#app").innerHTML = `
       <span>OPN / OQH Rate</span>
       <b>1 OPN = 500 OQH</b>
       <small>Demo Rate</small>
+    </div>
+
+    <div class="stat-card">
+      <span>Total OQH Burned</span>
+      <b>
+        <span id="totalOQHBurned">0</span> OQH
+      </b>
+      <small>NFT Mint Sink</small>
     </div>
 
     <div class="stat-card">
@@ -1898,5 +1907,18 @@ async function renderCheckInStreak() {
     });
   } catch (err) {
     console.error("Render check-in streak failed", err);
+  }
+}
+async function renderTotalOQHBurned() {
+  const el = document.getElementById("totalOQHBurned");
+
+  if (!el || !rewardNFTContract) return;
+
+  try {
+    const burned = await rewardNFTContract.totalOQHBurned();
+    el.innerText = Number(ethers.formatUnits(burned, 18)).toLocaleString();
+  } catch (err) {
+    console.error("Load total OQH burned failed", err);
+    el.innerText = "0";
   }
 }

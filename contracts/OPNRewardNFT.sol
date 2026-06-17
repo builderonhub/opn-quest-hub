@@ -19,6 +19,7 @@ contract OPNRewardNFT is ERC721 {
     IOPNNativeStaking public opnStaking;
     IERC20Burnable public oqhToken;
     mapping(uint256 => uint256) public mintCost;
+    uint256 public totalOQHBurned;
     address public constant BURN_ADDRESS =
     0x000000000000000000000000000000000000dEaD;
     address public owner;
@@ -70,7 +71,7 @@ contract OPNRewardNFT is ERC721 {
             oqhToken.transferFrom(msg.sender, BURN_ADDRESS, cost),
             "OQH burn failed"
         );
-
+        totalOQHBurned += cost;
         hasClaimedTier[msg.sender][tier] = true;
 
         uint256 tokenId = nextTokenId;
