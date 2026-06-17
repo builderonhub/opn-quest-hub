@@ -636,6 +636,7 @@ connectBtn.onclick = async () => {
       userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
 
     await updateCheckInButton();
+    await renderTotalOQHBurned();
     await refreshPoints();
     await renderWalletStats();
     await renderLeaderboard();
