@@ -336,13 +336,13 @@ Users can check in once every day.
 
 7-Day Streak System
 
-Day 1 → 5 Points
-Day 2 → 10 Points
-Day 3 → 15 Points
-Day 4 → 20 Points
-Day 5 → 25 Points
-Day 6 → 30 Points
-Day 7 → 35 Points
+Day 1 → 5 Points  
+Day 2 → 10 Points  
+Day 3 → 15 Points  
+Day 4 → 20 Points  
+Day 5 → 25 Points  
+Day 6 → 30 Points  
+Day 7 → 35 Points  
 
 Missing a day resets the streak.
 
