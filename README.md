@@ -356,7 +356,7 @@ Current Quests:
 * Follow IOPN
 * Join Discord
 * Share OPN Quest Hub
-* Submit Feedback
+* Learn iOPN Project
 
 Features:
 
