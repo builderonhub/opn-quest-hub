@@ -1,12 +1,14 @@
 # OPN Quest Hub
 
-### Gamified DeFi Engagement Layer for the OPN Ecosystem
+### The Engagement, Reward & Utility Layer of OPN
 
-OPN Quest Hub is a gamified engagement platform built on the OPN Network.
+OPN Quest Hub is a gamified participation economy built on the OPN Network.
 
-The platform transforms ecosystem participation into measurable on-chain value through activity points, achievement NFTs, staking rewards, referral incentives, and token utility.
+The platform transforms ecosystem activity into measurable on-chain achievements, rewards, reputation, and utility through participation points, achievement NFTs, staking incentives, referral systems, leaderboard progression, and token-powered utilities.
 
-Rather than rewarding passive farming, OPN Quest Hub encourages users to actively contribute to the ecosystem through quests, daily engagement, on-chain transactions, staking, and community growth.
+Instead of rewarding passive farming, OPN Quest Hub encourages users to actively contribute to the ecosystem through daily engagement, quests, referrals, staking, on-chain activity, and community growth.
+
+The result is a sustainable participation economy where ecosystem contributions create long-term value.
 
 ---
 
@@ -16,7 +18,7 @@ Frontend
 
 https://opn-points-tracker.vercel.app
 
-GitHub
+Repository
 
 https://github.com/builderonhub/opn-quest-hub
 
@@ -29,80 +31,115 @@ https://github.com/builderonhub/opn-quest-hub
 
 ---
 
-# What Are We Building?
+# What We Built
 
-OPN Quest Hub is an engagement and reward layer for the OPN ecosystem.
+OPN Quest Hub is an engagement, reward, and utility platform designed for the OPN ecosystem.
 
 The platform combines:
 
-* On-Chain Participation Tracking
-* Achievement NFTs
-* Native OPN Staking
+### Participation Layer
+
+* Daily Check-In System
+* 7-Day Check-In Streaks
+* Quest Rewards
+* Referral Rewards
+* Activity Milestone Rewards
+
+### Achievement Layer
+
+* Bronze Achievement NFT
+* Silver Achievement NFT
+* Gold Achievement NFT
+* NFT Eligibility System
+* NFT Reward Boosts
+
+### DeFi Layer
+
 * OQH Utility Token
-* DeFi Reward Mechanics
-* Referral Incentives
-* Wallet Analytics
-* Community Leaderboards
-
-Every reward, achievement, and progression milestone is verifiable on-chain.
-
----
-
-# Why Are We Building It?
-
-Many blockchain ecosystems face the same challenges:
-
-* Users join but do not stay active
-* Community contributions are difficult to measure
-* Reward systems often become inflationary
-* Ecosystem engagement lacks long-term incentives
-
-OPN Quest Hub addresses these challenges by creating a transparent participation economy where activity generates value and utility.
-
-The goal is to increase ecosystem engagement while introducing sustainable token utility.
-
----
-
-# How Does It Work?
-
-Users participate in ecosystem activities:
-
-* Daily Check-In
-* Quests
-* Referral Program
-* On-Chain Transactions
+* OQH Faucet
+* OQH DeFi Vault
 * Native OPN Staking
+* NFT Staking Multipliers
+
+### Utility Layer
+
+* NFT Economy V2
+* OQH Burn Mechanism
+* Arcade Ticket Economy
+* NFT-Gated Arcade Access
+
+### Analytics Layer
+
+* Wallet Analytics
+* NFT Analytics
+* OQH Burn Analytics
+* Community Leaderboard
+
+Every reward, achievement, utility action, and progression milestone remains transparent and verifiable on-chain.
+
+---
+
+# Why We Built It
+
+Many blockchain ecosystems face a common challenge:
+
+Users often join, complete a few transactions, claim rewards, and become inactive because there is no meaningful progression system connecting participation, achievement, utility, and long-term incentives.
+
+OPN Quest Hub was designed to solve this challenge by creating a transparent participation economy for the OPN ecosystem.
+
+Instead of rewarding passive activity, the platform encourages continuous engagement through achievement-based progression, staking rewards, NFT ownership, reputation systems, and utility-driven token demand.
+
+The goal is to create sustainable ecosystem growth rather than short-term reward extraction.
+
+---
+
+# How It Works
+
+Users participate in ecosystem activities such as:
+
+* Daily Check-Ins
+* Quests
+* Referrals
+* Native OPN Staking
+* On-Chain Transactions
 
 These activities generate participation points.
 
-Points determine NFT eligibility.
+Participation points determine NFT eligibility.
 
 Users burn OQH to mint achievement NFTs.
 
-Achievement NFTs unlock staking reward boosts.
+Achievement NFTs unlock reward boosts and additional platform utility.
 
-Result:
+Users can stake OQH, earn rewards, access the Arcade, and continue progressing through the ecosystem.
+
+Participation Flow:
 
 Activity  
 ↓
-Points  
+Participation Points  
 ↓
 NFT Eligibility  
 ↓
 Burn OQH  
 ↓
-Mint NFT  
+Mint Achievement NFT  
 ↓
-Reward Boosts  
+Unlock Utility  
 ↓
-More Activity  
+Earn Enhanced Rewards  
+↓
+Continue Progression  
+
 ---
 
 # Builder Contest Highlights
 
 ✅ Fully On-Chain Points System
 
-✅ 7-Day Check-In Streak System
+✅ Daily Check-In Rewards
+
+✅ 7-Day Streak System
 
 ✅ Quest Rewards
 
@@ -114,7 +151,7 @@ More Activity
 
 ✅ OQH DeFi Vault
 
-✅ NFT Achievement System
+✅ Achievement NFT System
 
 ✅ NFT Economy V2
 
@@ -122,48 +159,17 @@ More Activity
 
 ✅ Total OQH Burn Tracking
 
-✅ NFT Utility Boosts
+✅ NFT Reward Boosts
+
+✅ NFT-Gated Arcade
+
+✅ Arcade Ticket Economy
 
 ✅ Wallet Analytics
 
 ✅ NFT Analytics
 
 ✅ Public Leaderboard
-
----
-
-# Core Features
-
-## Participation Layer
-
-* Daily Check-In
-* 7-Day Streak Rewards
-* Quest Completion
-* Referral Rewards
-* Activity Milestones
-
-## NFT Layer
-
-* Bronze NFT
-* Silver NFT
-* Gold NFT
-* NFT Eligibility System
-* NFT Utility Boosts
-
-## DeFi Layer
-
-* OQH Vault Staking
-* Native OPN Staking
-* NFT Reward Multipliers
-* OQH Faucet
-
-## Analytics Layer
-
-* Wallet Statistics
-* Transaction Tracking
-* NFT Claimed Statistics
-* Total OQH Burn Tracking
-* Leaderboard
 
 ---
 
@@ -194,9 +200,10 @@ Address
 
 Features
 
-* ERC20 Token
+* ERC20 Utility Token
 * Daily Faucet
 * NFT Mint Currency
+* Arcade Ticket Currency
 * Staking Utility
 
 ---
@@ -228,7 +235,7 @@ Address
 Features
 
 * Stake Native OPN
-* Earn Platform Points
+* Earn Participation Points
 * Claim Points
 * Withdraw OPN
 
@@ -254,9 +261,7 @@ Features
 
 # NFT Economy V2
 
-NFTs are no longer free.
-
-Users must satisfy two requirements:
+Achievement NFTs require both participation and token commitment.
 
 ### Participation Requirement
 
@@ -280,35 +285,48 @@ When an NFT is minted:
 * NFT ownership is recorded on-chain
 * Reward boosts become active
 
----
+Result:
 
-# 7-Day Check-In Rewards
-
-| Day   | Reward    |
-| ----- | --------- |
-| Day 1 | 5 Points  |
-| Day 2 | 10 Points |
-| Day 3 | 15 Points |
-| Day 4 | 20 Points |
-| Day 5 | 25 Points |
-| Day 6 | 30 Points |
-| Day 7 | 35 Points |
-
-Missing a day resets the streak.
+Activity  
+↓
+Points  
+↓
+NFT Eligibility  
+↓
+Burn OQH  
+↓
+Achievement NFT  
+↓
+Utility & Rewards  
 
 ---
 
-# Activity Milestones
+# OPN Arcade
 
-| Transactions | Reward |
-| ------------ | ------ |
-| 1            | +1     |
-| 10           | +5     |
-| 50           | +15    |
-| 100          | +30    |
-| 500          | +75    |
-| 1000         | +150   |
-| 2000         | +300   |
+OPN Arcade introduces a new utility layer for OQH.
+
+Features:
+
+* NFT-Gated Access
+* Daily Free Play
+* Arcade Ticket Economy
+* OQH-Powered Utility
+
+Players receive one free play per day.
+
+Additional plays require Arcade Tickets purchased using OQH.
+
+Arcade Flow:
+
+OQH  
+↓
+Arcade Ticket  
+↓
+Gameplay Access  
+↓
+Additional Utility  
+
+This creates a second utility sink for OQH beyond NFT minting.
 
 ---
 
@@ -324,7 +342,7 @@ Missing a day resets the streak.
 
 # Sustainability Model
 
-Most reward systems follow:
+Traditional Reward Systems
 
 Reward Token  
 ↓
@@ -332,65 +350,7 @@ Farm
 ↓
 Sell  
 
-OPN Quest Hub introduces utility-driven demand:
-
-* NFT Mint Costs
-* OQH Burn Mechanisms
-* NFT Utility Boosts
-* Future NFT Upgrades
-* Seasonal Competitions
-
-This creates natural token sinks and encourages long-term ecosystem participation.
-
----
-
-# Roadmap
-
-### Phase 1 — Core Platform ✅
-
-* On-Chain Points
-* Quests
-* Referrals
-* Daily Check-In
-* Achievement NFTs
-
-### Phase 2 — DeFi Layer ✅
-
-* OQH Vault
-* Native OPN Staking
-* NFT Reward Boosts
-* Analytics Dashboard
-
-### Phase 3 — NFT Economy V2 ✅
-
-* OQH Burn Mechanism
-* NFT Mint Costs
-* Total OQH Burn Tracking
-* Sustainable Token Sink
-
-### Phase 4 — Community Expansion 🚧
-
-* Seasonal Rankings
-* Top Stakers
-* NFT Holder Analytics
-* Community Competitions
-
-### Phase 5 — NFT Upgrade System 🔜
-
-* NFT Level Progression
-* OQH Upgrade Costs
-* Enhanced Reward Multipliers
-* Long-Term Utility Expansion
-
----
-
-# Vision
-
-OPN Quest Hub aims to become the engagement layer of the OPN ecosystem.
-
-The long-term vision is to transform OQH from a reward token into a utility token through NFT progression, ecosystem participation, governance, and sustainable reward mechanisms.
-
-Future Evolution
+OPN Quest Hub
 
 Activity  
 ↓
@@ -400,11 +360,121 @@ NFT Eligibility
 ↓
 Burn OQH  
 ↓
-NFT Upgrade  
+NFT Ownership  
 ↓
-Expanded Utility  
+Arcade Utility  
 ↓
-Sustainable Ecosystem  
+Reward Boosts  
+↓
+More Participation  
+
+The platform creates sustainable token demand through utility rather than relying solely on emissions.
+
+---
+
+# Roadmap
+
+## Phase 1 — Core Platform ✅ Completed
+
+* On-Chain Points
+* Daily Check-In
+* Quests
+* Referrals
+* Activity Rewards
+* Achievement NFTs
+
+---
+
+## Phase 2 — DeFi Layer ✅ Completed
+
+* OQH Utility Token
+* OQH Vault
+* Native OPN Staking
+* NFT Reward Boosts
+* Analytics Dashboard
+
+---
+
+## Phase 3 — NFT Economy V2 ✅ Completed
+
+* OQH Burn Mechanism
+* NFT Mint Costs
+* Total OQH Burn Tracking
+* Sustainable Token Sink
+
+---
+
+## Phase 4 — OPN Arcade & OQH Utility ✅ Completed
+
+* NFT-Gated Arcade
+* Arcade Ticket Economy
+* Daily Free Play
+* OQH Utility Expansion
+
+---
+
+## Phase 5 — Community Expansion 🚧 In Progress
+
+* Seasonal Rankings
+* Enhanced Referrals
+* Top Stakers Ranking
+* NFT Holder Analytics
+* Community Competitions
+
+---
+
+## Phase 6 — NFT Upgrade System 🔜 Planned
+
+* NFT Level Progression
+* OQH Upgrade Costs
+* Enhanced Reward Multipliers
+* Long-Term Utility Expansion
+
+---
+
+## Phase 7 — OQH Utility Economy 🔮 Future
+
+* Premium Quests
+* Seasonal Entry Tickets
+* Governance Participation
+* Marketplace Integration
+* Ecosystem Revenue Sharing
+
+---
+
+# Long-Term Vision
+
+OPN Quest Hub is not intended to be only a quest platform.
+
+The long-term objective is to become the Engagement, Reward, and Utility Layer of the OPN ecosystem.
+
+Today, users earn points, unlock NFTs, receive staking boosts, and spend OQH through NFT minting and Arcade participation.
+
+Tomorrow, OPN Quest Hub will expand into a broader participation economy where ecosystem contributions generate reputation, governance influence, utility access, and long-term rewards.
+
+Future Evolution:
+
+Activity  
+↓
+Points  
+↓
+NFT Eligibility  
+↓
+Burn OQH  
+↓
+NFT Ownership  
+↓
+Arcade Utility  
+↓
+NFT Upgrades  
+↓
+Governance Rights   
+↓
+Revenue Sharing  
+↓
+Sustainable Ecosystem Growth  
+
+The ultimate goal is to transform OQH from a reward token into a utility asset that connects participation, progression, reputation, and ecosystem value creation.
 
 ---
 
