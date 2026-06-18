@@ -1,37 +1,21 @@
-const hre = require("hardhat");
+const { ethers } = require("hardhat");
 
 async function main() {
-  const POINTS_CONTRACT =
-    "0xd8aFD8Ff043a0d2e364E991B9ef2df50d44aFB18";
+  const POINTS_ADDRESS = "0xd8aFD8Ff043a0d2e364E991B9ef2df50d44aFB18";
+  const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
+  const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 
-  const OPN_STAKING =
-    "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
+  const RewardNFT = await ethers.getContractFactory("OPNRewardNFT");
 
-  const OQH_TOKEN =
-    "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
-
-  const OPNRewardNFT =
-    await hre.ethers.getContractFactory("OPNRewardNFT");
-
-  console.log("Deploying OPNRewardNFT...");
-
-  const nft = await OPNRewardNFT.deploy(
-    POINTS_CONTRACT,
-    OPN_STAKING,
-    OQH_TOKEN
+  const rewardNFT = await RewardNFT.deploy(
+    POINTS_ADDRESS,
+    OPN_STAKING_ADDRESS,
+    OQH_TOKEN_ADDRESS
   );
 
-  console.log(
-    "Deploy tx:",
-    nft.deploymentTransaction().hash
-  );
+  await rewardNFT.waitForDeployment();
 
-  await nft.waitForDeployment();
-
-  console.log(
-    "OPNRewardNFT deployed to:",
-    await nft.getAddress()
-  );
+  console.log("Reward NFT V6 deployed to:", await rewardNFT.getAddress());
 }
 
 main().catch((error) => {

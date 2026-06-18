@@ -20,6 +20,9 @@ contract OPNRewardNFT is ERC721 {
     IERC20Burnable public oqhToken;
     mapping(uint256 => uint256) public mintCost;
     uint256 public totalOQHBurned;
+    uint256 public bronzeClaimed;
+    uint256 public silverClaimed;
+    uint256 public goldClaimed;
     address public constant BURN_ADDRESS =
     0x000000000000000000000000000000000000dEaD;
     address public owner;
@@ -78,6 +81,13 @@ contract OPNRewardNFT is ERC721 {
         nextTokenId++;
 
         _safeMint(msg.sender, tokenId);
+        if (tier == 1) {
+            bronzeClaimed++;
+                } else if (tier == 2) {
+                    silverClaimed++;
+                } else if (tier == 3) {
+                    goldClaimed++;
+                }
     }
 
     function hasClaimedNFT(address user, uint256 tier) external view returns (bool) {

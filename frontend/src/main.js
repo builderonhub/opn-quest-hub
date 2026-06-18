@@ -6,7 +6,7 @@ const OQH_TOKEN_ADDRESS = "0xC88Fd59E170e3e27AF12427b1b461A4Dd2337aCd";
 const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
-const REWARD_NFT_ADDRESS = "0x06a1135A1439E14b4d69DdE6ee8D3ae1028dA88a";
+const REWARD_NFT_ADDRESS = "0x363Cb9894Ea393d4f5B08640537bcCEfbd090680";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -28,6 +28,9 @@ const REWARD_NFT_ABI = [
   "function hasClaimedNFT(address user, uint256 tier) view returns (bool)",
   "function requiredPoints(uint256 tier) view returns (uint256)",
   "function mintCost(uint256 tier) view returns (uint256)",
+  "function bronzeClaimed() view returns (uint256)",
+  "function silverClaimed() view returns (uint256)",
+  "function goldClaimed() view returns (uint256)",
   "function totalOQHBurned() view returns (uint256)"
 ];
 
@@ -129,6 +132,16 @@ document.querySelector("#app").innerHTML = `
         <span>Total Staked</span>
         <b><span id="opntTotalStaked">0</span> OPN</b>
         <small>Native Staking</small>
+      </div>
+
+      <div class="stat-card">
+        <span>NFT Claimed</span>
+        <div class="nft-claimed-list">
+          <p>🥉 Bronze Claimed: <b id="bronzeClaimed">0</b></p>
+          <p>🥈 Silver Claimed: <b id="silverClaimed">0</b></p>
+          <p>🥇 Gold Claimed: <b id="goldClaimed">0</b></p>
+        </div>
+        <small>Achievement NFTs</small>
       </div>
 
     </section>
@@ -638,6 +651,7 @@ connectBtn.onclick = async () => {
 
     await updateCheckInButton();
     await renderTotalOQHBurned();
+    await renderNFTClaimedStats();
     await refreshPoints();
     await renderWalletStats();
     await renderLeaderboard();
@@ -686,7 +700,10 @@ checkInBtn.onclick = async () => {
       statusText.innerText =
         "Already checked in today (verified on-chain).";
 
-      updateCheckInButton();
+      await renderCheckIn();
+      await updateCheckInButton();
+      await renderCheckInStreak();
+
       return;
     }
 
@@ -710,27 +727,33 @@ checkInBtn.onclick = async () => {
 
     await tx.wait();
 
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     saveTodayCheckIn();
 
     await refreshPoints();
-    await renderCheckIn();
     await renderLeaderboard();
-    await renderNFTRewards();
 
-    updateCheckInButton();
+    await renderCheckIn();
+    await updateCheckInButton();
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    await renderCheckInStreak();
 
     statusText.innerText =
       `Check-in successful! You earned +${todayReward} points.`;
   } catch (error) {
     console.error(error);
-    statusText.innerText = "Check-in failed or rejected.";
-    updateCheckInButton();
-  }
 
-  await refreshPoints();
-  await renderLeaderboard();
-  await updateCheckInButton();
-  await startCountdown();
+    statusText.innerText = "Check-in failed or rejected.";
+
+    checkInBtn.disabled = false;
+    checkInBtn.innerText = "Check In";
+
+    await updateCheckInButton();
+    await renderCheckInStreak();
+  }
 };
 
 const shareProjectText =
@@ -1050,23 +1073,20 @@ window.claimNFT = async function (tier) {
 
     const tx = await rewardNFTContract.claimNFT(tier);
     await tx.wait();
-
     await renderNFTRewards();
+    await renderTotalOQHBurned();
+    await renderNFTClaimedStats();
+    await renderOQHBalance();
+
 
     statusText.innerText = "NFT claimed successfully!";
   } catch (err) {
     console.error(err);
     statusText.innerText = "NFT claim failed or rejected.";
   }
-  const ONCHAIN_QUESTS = [
-  { id: 101, tx: 1, reward: 1, title: "Make 1 On-chain Transaction" },
-  { id: 102, tx: 10, reward: 5, title: "Make 10 On-chain Transactions" },
-  { id: 103, tx: 50, reward: 15, title: "Make 50 On-chain Transactions" },
-  { id: 104, tx: 100, reward: 30, title: "Make 100 On-chain Transactions" },
-  { id: 105, tx: 500, reward: 75, title: "Make 500 On-chain Transactions" },
-  { id: 106, tx: 1000, reward: 150, title: "Make 1000 On-chain Transactions" },
-  { id: 107, tx: 2000, reward: 300, title: "Make 2000 On-chain Transactions" }
-];
+};
+
+
 async function getUserTxCount() {
   const walletProvider = getWalletProvider();
   const provider = new ethers.BrowserProvider(walletProvider);
@@ -1074,7 +1094,6 @@ async function getUserTxCount() {
   return await provider.getTransactionCount(userAddress);
 }
 
-};
 
 async function getDeFiContracts() {
   const walletProvider = getWalletProvider();
@@ -1498,6 +1517,10 @@ async function mintRewardNFT(tier, cost) {
     await renderLeaderboard();
     await renderNFTRewards();
     await renderDeFiVault();
+    await renderTotalOQHBurned();
+    await renderNFTClaimedStats();
+    await renderOQHBalance();
+
   } catch (err) {
     console.error("Mint NFT failed", err);
   }
@@ -1925,3 +1948,37 @@ async function renderTotalOQHBurned() {
     el.innerText = "0";
   }
 }
+
+async function renderNFTClaimedStats() {
+  if (!rewardNFTContract) return;
+
+  try {
+    const bronze =
+      await rewardNFTContract.bronzeClaimed();
+
+    const silver =
+      await rewardNFTContract.silverClaimed();
+
+    const gold =
+      await rewardNFTContract.goldClaimed();
+
+    document.getElementById(
+      "bronzeClaimed"
+    ).innerText = Number(bronze);
+
+    document.getElementById(
+      "silverClaimed"
+    ).innerText = Number(silver);
+
+    document.getElementById(
+      "goldClaimed"
+    ).innerText = Number(gold);
+
+  } catch (err) {
+    console.error(
+      "Load NFT claimed stats failed",
+      err
+    );
+  }
+}
+
