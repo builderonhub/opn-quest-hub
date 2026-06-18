@@ -188,7 +188,7 @@ Features:
 
 Contract:
 
-0x06a1135A1439E14b4d69DdE6ee8D3ae1028dA88a
+0x363Cb9894Ea393d4f5B08640537bcCEfbd090680
 
 Responsibilities:
 
