@@ -392,19 +392,19 @@ The long-term vision is to transform OQH from a reward token into a utility toke
 
 Future Evolution
 
-Activity
+Activity  
 ↓
-Points
+Points  
 ↓
-NFT Eligibility
+NFT Eligibility  
 ↓
-Burn OQH
+Burn OQH  
 ↓
-NFT Upgrade
+NFT Upgrade  
 ↓
-Expanded Utility
+Expanded Utility  
 ↓
-Sustainable Ecosystem
+Sustainable Ecosystem  
 
 ---
 
