@@ -79,8 +79,9 @@ document.querySelector("#app").innerHTML = `
       <nav class="nav-links">
         <button onclick="scrollToSection('quests')">Quests</button>
         <button onclick="scrollToSection('onchainQuests')">On-chain</button>
-        <button onclick="scrollToSection('swap')">Swap / Liquidity</button>
         <button onclick="scrollToSection('nftRewards')">NFTs</button>
+        <button onclick="scrollToSection('earnSection')">Earn</button>
+        <button onclick="scrollToSection('swap')">Swap / Liquidity</button>        
         <button onclick="scrollToSection('leaderboardList')">Leaderboard</button>
         <button onclick="scrollToSection('referralLink')">Referral</button>
         
@@ -206,7 +207,7 @@ document.querySelector("#app").innerHTML = `
 
         </div>
 
-        <div class="card opn-stake-card">
+        <div id="earnSection" class="card opn-stake-card">
         <div class="inner-card">
           <h2>OPN Faucet</h2>
           <p>Get free testnet OPN for gas and native staking.</p>
@@ -712,6 +713,7 @@ checkInBtn.onclick = async () => {
     saveTodayCheckIn();
 
     await refreshPoints();
+    await renderCheckIn();
     await renderLeaderboard();
     await renderNFTRewards();
 
@@ -1896,7 +1898,7 @@ async function renderCheckInStreak() {
     const streak = Number(
       await contract.getCheckInStreak(userAddress)
     );
-
+    console.log("Current check-in streak:", streak);
     const days = row.querySelectorAll(".streak-day");
 
     days.forEach((day, index) => {
