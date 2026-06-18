@@ -7,6 +7,7 @@ const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
 const REWARD_NFT_ADDRESS = "0x363Cb9894Ea393d4f5B08640537bcCEfbd090680";
+const ARCADE_ADDRESS = "0x85bEc7F9b17455521add193b077992a04d809119";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -20,6 +21,15 @@ const ABI = [
   "function canClaimFaucet(address user) view returns(bool)",
   "function getTodayCheckInReward(address user) view returns (uint256)",
   "function getCheckInStreak(address user) view returns (uint256)"
+];
+
+const ARCADE_ABI = [
+  "function buyTicket() external",
+  "function consumeTicket() external",
+  "function useFreePlay() external",
+  "function canUseFreePlay(address user) view returns (bool)",
+  "function tickets(address user) view returns (uint256)",
+  "function ticketBalance(address user) view returns (uint256)"
 ];
 
 const REWARD_NFT_ABI = [
@@ -84,6 +94,7 @@ document.querySelector("#app").innerHTML = `
         <button onclick="scrollToSection('onchainQuests')">On-chain</button>
         <button onclick="scrollToSection('nftRewards')">NFTs</button>
         <button onclick="scrollToSection('earnSection')">Earn</button>
+        <button onclick="scrollToSection('arcade')">Arcade</button>
         <button onclick="scrollToSection('swap')">Swap / Liquidity</button>        
         <button onclick="scrollToSection('leaderboardList')">Leaderboard</button>
         <button onclick="scrollToSection('referralLink')">Referral</button>
@@ -100,9 +111,9 @@ document.querySelector("#app").innerHTML = `
       <div>
         <h1>Your journey across the IOPN ecosystem starts here.</h1>
         <p>
-          Complete quests, earn on-chain points, unlock NFT rewards, stake OQH and OPN,
-          and compete on a free-for-all leaderboard where every rank is earned through real activity.
-        </p>
+          Complete quests, earn participation points, unlock achievement NFTs,
+          stake OQH and OPN, burn OQH for utility, and progress through the IOPN ecosystem.
+      </p>
       </div>
       <div class="hero-orb">O</div>
     </section>
@@ -265,7 +276,48 @@ document.querySelector("#app").innerHTML = `
         <div class="leaderboard-card">
           <div id="leaderboardList">Loading leaderboard...</div>
         </div>
-      </section>      
+      </section> 
+
+      <section id="arcade" class="card arcade-card">
+      <h2>OPN Arcade</h2>
+      <p>NFT-gated mini game for OPN Quest Hub achievement holders.</p>
+
+      <div id="arcadeLocked" class="arcade-locked">
+        <h3>NFT Required</h3>
+        <p>You need at least one Bronze, Silver, or Gold NFT to enter the arcade.</p>
+      </div>
+
+      <div id="arcadeGame" class="arcade-game" style="display:none;">
+
+        <div class="arcade-info">
+          <span>Score: <b id="gameScore">0</b></span>
+          <span>Lives: <b id="gameLives">1</b></span>
+          <span>Tickets: <b id="gameTickets">1</b></span>
+          <span>NFT Boost: <b id="gameBoost">None</b></span>
+        </div>
+
+        <canvas id="gameCanvas" width="720" height="260"></canvas>
+        <div id="arcadeMessage" class="arcade-message"></div>
+        <div class="arcade-bottom-row">
+
+          <div class="free-play-pill">
+            Free Play: <b id="arcadeFreePlay">Used Today</b>
+          </div>
+
+          <button
+            id="buyArcadeTicketBtn"
+            onclick="buyArcadeTicket()"
+            class="arcade-buy-small"
+          >
+            Buy Ticket — 100 OQH
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+      
       </section>
 
       <section class="right-panel">
@@ -369,6 +421,7 @@ let opnVault;
 let opnStakingContract;
 let opntTokenContract;
 let isRenderingNFTRewards = false;
+let arcadeContract;
 
 function randomPoints() {
   const rewards = [10, 20, 30, 40, 50];
@@ -616,6 +669,11 @@ connectBtn.onclick = async () => {
     saveLeaderboardWallet(userAddress);
     updateReferralUI();
 
+    arcadeContract = new ethers.Contract(
+        ARCADE_ADDRESS,
+        ARCADE_ABI,
+        signer
+      );
     contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
       opnToken = new ethers.Contract( 
         OQH_TOKEN_ADDRESS, 
@@ -664,6 +722,8 @@ connectBtn.onclick = async () => {
     await updateFaucetStatus();
     await renderOPNStaking();
     await renderGlobalStakingStats();
+    await renderArcadeAccess();
+    await loadArcadeStatus();
    
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
@@ -1077,7 +1137,7 @@ window.claimNFT = async function (tier) {
     await renderTotalOQHBurned();
     await renderNFTClaimedStats();
     await renderOQHBalance();
-
+    await renderArcadeAccess();
 
     statusText.innerText = "NFT claimed successfully!";
   } catch (err) {
@@ -1982,3 +2042,434 @@ async function renderNFTClaimedStats() {
   }
 }
 
+let gameRunning = false;
+let gameLoop = null;
+let arcadeTickets = 1;
+const ARCADE_TICKET_COST = 100;
+
+let player = {
+  x: 70,
+  y: 190,
+  w: 28,
+  h: 28,
+  vy: 0,
+  jumping: false
+};
+
+let obstacle = {
+  x: 720,
+  y: 200,
+  w: 28,
+  h: 28,
+  speed: 5
+};
+
+let coin = {
+  x: 500,
+  y: 160,
+  r: 10
+};
+
+let gameScore = 0;
+let gameLives = 1;
+let nftBoostName = "None";
+let scoreMultiplier = 1;
+
+async function renderArcadeAccess() {
+  const locked = document.getElementById("arcadeLocked");
+  const game = document.getElementById("arcadeGame");
+
+  if (!locked || !game || !rewardNFTContract || !userAddress) return;
+
+  try {
+    const hasBronze = await rewardNFTContract.hasClaimedNFT(userAddress, 1);
+    const hasSilver = await rewardNFTContract.hasClaimedNFT(userAddress, 2);
+    const hasGold = await rewardNFTContract.hasClaimedNFT(userAddress, 3);
+
+    if (!hasBronze && !hasSilver && !hasGold) {
+      locked.style.display = "block";
+      game.style.display = "none";
+      return;
+    }
+
+    locked.style.display = "none";
+    game.style.display = "block";
+
+    if (hasGold) {
+      gameLives = 3;
+      scoreMultiplier = 2;
+      nftBoostName = "Gold x2 Score";
+    } else if (hasSilver) {
+      gameLives = 2;
+      scoreMultiplier = 1.5;
+      nftBoostName = "Silver +1 Life";
+    } else {
+      gameLives = 1;
+      scoreMultiplier = 1;
+      nftBoostName = "Bronze Access";
+    }
+
+    updateGameUI();
+    drawGame();
+  } catch (err) {
+    console.error("Render arcade access failed", err);
+  }
+}
+
+function updateGameUI() {
+  const scoreEl = document.getElementById("gameScore");
+  const livesEl = document.getElementById("gameLives");
+  const boostEl = document.getElementById("gameBoost");
+  const ticketsEl = document.getElementById("gameTickets");
+  if (ticketsEl) ticketsEl.innerText = arcadeTickets;
+  if (scoreEl) scoreEl.innerText = Math.floor(gameScore);
+  if (livesEl) livesEl.innerText = gameLives;
+  if (boostEl) boostEl.innerText = nftBoostName;
+
+  function updateGameUI() {
+    const scoreEl = document.getElementById("gameScore");
+    const livesEl = document.getElementById("gameLives");
+    const boostEl = document.getElementById("gameBoost");
+    const ticketsEl = document.getElementById("gameTickets");
+
+    if (scoreEl) scoreEl.innerText = Math.floor(gameScore);
+    if (livesEl) livesEl.innerText = gameLives;
+    if (boostEl) boostEl.innerText = nftBoostName;
+    if (ticketsEl) ticketsEl.innerText = arcadeTickets;
+  }
+
+}
+
+async function loadArcadeStatus() {
+  if (!arcadeContract || !userAddress) return;
+
+  try {
+    const freePlay = await arcadeContract.canUseFreePlay(userAddress);
+    const ticketBal = await arcadeContract.ticketBalance(userAddress);
+
+    const freeEl = document.getElementById("arcadeFreePlay");
+    const ticketEl = document.getElementById("gameTickets");
+    const buyBtn = document.getElementById("buyArcadeTicketBtn");
+
+    if (freeEl) {
+      freeEl.innerText = freePlay ? "Available" : "Used Today";
+    }
+
+    if (ticketEl) {
+      ticketEl.innerText = ticketBal.toString();
+    }
+
+    if (buyBtn) {
+      buyBtn.style.display =
+        !freePlay && Number(ticketBal) <= 0 ? "block" : "none";
+    }
+  } catch (err) {
+    console.error("Load arcade status failed", err);
+  }
+}
+
+let arcadePlayReady = false;
+
+window.startOPNGame = async function () {
+  if (gameRunning) return;
+
+  // Lần 2: sau khi đã ký ví trừ free play / ticket thì mới chạy game
+  if (arcadePlayReady) {
+    arcadePlayReady = false;
+    statusText.innerText = "";
+    beginArcadeRun();
+    return;
+  }
+
+  if (!arcadeContract || !userAddress) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  try {
+    statusText.innerText = "Preparing arcade play...";
+
+    const freePlay = await arcadeContract.canUseFreePlay(userAddress);
+    const ticketBal = await arcadeContract.ticketBalance(userAddress);
+
+    if (freePlay) {
+      const tx = await arcadeContract.useFreePlay();
+      await tx.wait();
+
+      statusText.innerText = "Free play used. Press START GAME to play.";
+    } else if (Number(ticketBal) > 0) {
+      const tx = await arcadeContract.consumeTicket();
+      await tx.wait();
+
+      const latestTickets = await arcadeContract.ticketBalance(userAddress);
+      arcadeTickets = Number(latestTickets);
+
+      const ticketEl = document.getElementById("gameTickets");
+      if (ticketEl) {
+        ticketEl.innerText = arcadeTickets.toString();
+      }
+
+      statusText.innerText = "Ticket used. Press START GAME to play.";
+    } else {
+      statusText.innerText = "";
+      const msg = document.getElementById("arcadeMessage");
+
+    if (msg) {
+      msg.innerText =
+        "No free play left. Buy a ticket for 100 OQH to continue.";
+    }
+      return;
+    }
+
+    arcadePlayReady = true;
+
+    await loadArcadeStatus();
+    updateGameUI();
+    drawGame();
+
+    setTimeout(() => {
+      if (arcadePlayReady) {
+        statusText.innerText = "";
+      }
+    }, 3000);
+  } catch (err) {
+    console.error("Prepare arcade play failed", err);
+    statusText.innerText = "";
+    arcadePlayReady = false;
+    alert(err?.reason || err?.message || "Prepare game failed");
+  }
+};
+
+function beginArcadeRun() {
+  const buyBtn = document.getElementById("buyArcadeTicketBtn");
+  if (buyBtn) buyBtn.style.display = "none";
+
+  const canvas = document.getElementById("gameCanvas");
+  if (!canvas) return;
+
+  if (gameLoop) clearInterval(gameLoop);
+
+  gameRunning = true;
+  gameScore = 0;
+
+  player.y = 190;
+  player.vy = 0;
+  player.jumping = false;
+
+  obstacle.x = 720;
+  coin.x = 500;
+  coin.y = 140 + Math.random() * 60;
+
+  updateGameUI();
+
+  gameLoop = setInterval(() => {
+    updateGame();
+    drawGame();
+  }, 1000 / 60);
+}
+
+function updateGame() {
+  gameScore += 0.08 * scoreMultiplier;
+
+  player.y += player.vy;
+  player.vy += 0.6;
+
+  if (player.y >= 190) {
+    player.y = 190;
+    player.vy = 0;
+    player.jumping = false;
+  }
+
+  obstacle.x -= obstacle.speed;
+
+  if (obstacle.x < -40) {
+    obstacle.x = 720 + Math.random() * 240;
+    obstacle.speed = 5 + Math.random() * 2;
+  }
+
+  coin.x -= 4;
+
+  if (coin.x < -30) {
+    coin.x = 720 + Math.random() * 300;
+    coin.y = 120 + Math.random() * 80;
+  }
+
+  if (
+    player.x < obstacle.x + obstacle.w &&
+    player.x + player.w > obstacle.x &&
+    player.y < obstacle.y + obstacle.h &&
+    player.y + player.h > obstacle.y
+  ) {
+    gameLives = Math.max(0, gameLives - 1);
+
+    obstacle.x = 720 + Math.random() * 240;
+
+   if (gameLives <= 0) {
+      gameRunning = false;
+      clearInterval(gameLoop);
+      gameLoop = null;
+
+     loadArcadeStatus();
+    }
+  }
+
+  const dx = player.x + player.w / 2 - coin.x;
+  const dy = player.y + player.h / 2 - coin.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance < player.w / 2 + coin.r) {
+    gameScore += 10 * scoreMultiplier;
+    coin.x = 720 + Math.random() * 300;
+    coin.y = 120 + Math.random() * 80;
+  }
+
+  updateGameUI();
+}
+
+function drawGame() {
+  const canvas = document.getElementById("gameCanvas");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#071025";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#1d2b5a";
+  ctx.fillRect(0, 220, canvas.width, 4);
+
+  ctx.fillStyle = "#56f0ff";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  ctx.fillStyle = "#ff4d6d";
+  ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+
+  ctx.beginPath();
+  ctx.arc(coin.x, coin.y, coin.r, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd166";
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "14px Arial";
+
+  if (!gameRunning) {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.fillRect(260, 92, 200, 64);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px Arial";
+    ctx.textAlign = "center";
+
+    if (gameScore > 0) {
+      ctx.fillText("GAME OVER", 360, 118);
+      ctx.font = "14px Arial";
+      ctx.fillText("Click to restart", 360, 143);
+    } else {
+      ctx.fillText("START GAME", 360, 126);
+    }
+
+    ctx.textAlign = "left";
+  }
+}
+
+
+const gameCanvas = document.getElementById("gameCanvas");
+
+gameCanvas.addEventListener("click", () => {
+  if (gameRunning || gameLoop) return;
+
+  startOPNGame();
+});
+
+window.buyArcadeTicket = async function () {
+  if (!arcadeContract || !opnToken || !userAddress) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  try {
+    const price = ethers.parseUnits("100", 18);
+
+    statusText.innerText = "Approving 100 OQH...";
+
+    const approveTx = await opnToken.approve(ARCADE_ADDRESS, price);
+    await approveTx.wait();
+
+    statusText.innerText = "Buying arcade ticket...";
+
+    const tx = await arcadeContract.buyTicket();
+    await tx.wait();
+
+    await loadArcadeStatus();
+
+    statusText.innerText = "Ticket purchased";
+
+    setTimeout(() => {
+      statusText.innerText = "";
+    }, 2000);
+  } catch (err) {
+    console.error("Buy arcade ticket failed", err);
+    statusText.innerText = "";
+    alert(err?.reason || err?.message || "Buy ticket failed");
+  }
+};
+
+async function buyArcadeTicket() {
+  if (!arcadeContract || !opnToken || !userAddress) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  try {
+    const price = ethers.parseUnits("100", 18);
+
+    const approveTx = await opnToken.approve(ARCADE_ADDRESS, price);
+    await approveTx.wait();
+
+    const tx = await arcadeContract.buyTicket();
+    await tx.wait();
+
+    alert("Arcade ticket purchased!");
+
+    await loadArcadeStatus();
+  } catch (err) {
+    console.error("Buy arcade ticket failed", err);
+    alert(err?.reason || err?.message || "Buy ticket failed");
+  }
+}
+window.jumpPlayer = function () {
+  if (!gameRunning) return;
+
+  if (!player.jumping) {
+    player.vy = -12;
+    player.jumping = true;
+  }
+};
+
+document.addEventListener("keydown", async (e) => {
+  if (e.code !== "Space") return;
+
+  e.preventDefault();
+
+  if (gameRunning) {
+    window.jumpPlayer();
+  } else {
+    await window.startOPNGame();
+  }
+});
+
+window.onkeydown = async function (e) {
+  if (e.code !== "Space") return;
+
+  e.preventDefault();
+
+  if (gameRunning) {
+    player.vy = -12;
+    player.jumping = true;
+    return;
+  }
+
+  await window.startOPNGame();
+};
