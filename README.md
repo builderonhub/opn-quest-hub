@@ -83,20 +83,19 @@ Achievement NFTs unlock staking reward boosts.
 
 Result:
 
-Activity
+Activity  
 ↓
-Points
+Points  
 ↓
-NFT Eligibility
+NFT Eligibility  
 ↓
-Burn OQH
+Burn OQH  
 ↓
-Mint NFT
+Mint NFT  
 ↓
-Reward Boosts
+Reward Boosts  
 ↓
-More Activity
-
+More Activity  
 ---
 
 # Builder Contest Highlights
@@ -327,11 +326,11 @@ Missing a day resets the streak.
 
 Most reward systems follow:
 
-Reward Token
+Reward Token  
 ↓
-Farm
+Farm  
 ↓
-Sell
+Sell  
 
 OPN Quest Hub introduces utility-driven demand:
 
