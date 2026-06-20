@@ -299,7 +299,7 @@ document.querySelector("#app").innerHTML = `
           <span>Score: <b id="gameScore">0</b></span>
           <span>Lives: <b id="gameLives">1</b></span>
           <span>Tickets: <b id="gameTickets">1</b></span>
-          <span>NFT Boost: <b id="gameBoost">None</b></span>
+          <span>My NFT: <b id="gameBoost">None</b></span>
         </div>
 
         <canvas id="gameCanvas" width="720" height="260"></canvas>
@@ -2192,7 +2192,6 @@ let arcadePlayReady = false;
 window.startOPNGame = async function () {
   if (gameRunning) return;
 
-  // Lần 2: sau khi đã ký ví trừ free play / ticket thì mới chạy game
   if (arcadePlayReady) {
     arcadePlayReady = false;
     statusText.innerText = "";
@@ -2211,12 +2210,15 @@ window.startOPNGame = async function () {
     const freePlay = await arcadeContract.canUseFreePlay(userAddress);
     const ticketBal = await arcadeContract.ticketBalance(userAddress);
 
+    console.log("Free Play:", freePlay);
+    console.log("Tickets:", ticketBal.toString());
+
     if (freePlay) {
       const tx = await arcadeContract.useFreePlay();
       await tx.wait();
 
       statusText.innerText = "Free play used. Press START GAME to play.";
-    } else if (Number(ticketBal) > 0) {
+    } else if (ticketBal > 0n) {
       const tx = await arcadeContract.consumeTicket();
       await tx.wait();
 
@@ -2228,15 +2230,18 @@ window.startOPNGame = async function () {
         ticketEl.innerText = arcadeTickets.toString();
       }
 
+      await loadArcadeStatus();
+
       statusText.innerText = "Ticket used. Press START GAME to play.";
     } else {
       statusText.innerText = "";
-      const msg = document.getElementById("arcadeMessage");
 
-    if (msg) {
-      msg.innerText =
-        "No free play left. Buy a ticket for 100 OQH to continue.";
-    }
+      const msg = document.getElementById("arcadeMessage");
+      if (msg) {
+        msg.innerText =
+          "No free play left. Buy a ticket for 100 OQH to continue.";
+      }
+
       return;
     }
 
@@ -2253,9 +2258,14 @@ window.startOPNGame = async function () {
     }, 3000);
   } catch (err) {
     console.error("Prepare arcade play failed", err);
+
     statusText.innerText = "";
     arcadePlayReady = false;
-    alert(err?.reason || err?.message || "Prepare game failed");
+
+    const msg = document.getElementById("arcadeMessage");
+    if (msg) {
+      msg.innerText = "Unable to start. Please buy a ticket first.";
+    }
   }
 };
 
@@ -2422,7 +2432,7 @@ window.buyArcadeTicket = async function () {
     await tx.wait();
 
     await loadArcadeStatus();
-
+    await renderTotalOQHBurned();
     statusText.innerText = "Ticket purchased";
 
     setTimeout(() => {
