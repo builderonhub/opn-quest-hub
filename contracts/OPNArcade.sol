@@ -10,10 +10,15 @@ contract OPNArcade {
 
     uint256 public constant TICKET_PRICE = 100 * 10 ** 18;
 
+    uint256 public totalOQHBurned;
+    uint256 public totalTicketsSold;
+
     mapping(address => uint256) public tickets;
     mapping(address => uint256) public lastFreePlayDay;
+    mapping(address => uint256) public totalTicketsBought;
+    mapping(address => uint256) public totalGamesPlayed;
 
-    event TicketBought(address indexed user, uint256 amount);
+    event TicketBought(address indexed user, uint256 amount, uint256 price);
     event TicketConsumed(address indexed user);
     event FreePlayUsed(address indexed user);
 
@@ -28,8 +33,11 @@ contract OPNArcade {
         );
 
         tickets[msg.sender] += 1;
+        totalTicketsBought[msg.sender] += 1;
+        totalTicketsSold += 1;
+        totalOQHBurned += TICKET_PRICE;
 
-        emit TicketBought(msg.sender, 1);
+        emit TicketBought(msg.sender, 1, TICKET_PRICE);
     }
 
     function canUseFreePlay(address user) public view returns (bool) {
@@ -42,6 +50,7 @@ contract OPNArcade {
 
         uint256 today = block.timestamp / 1 days;
         lastFreePlayDay[msg.sender] = today;
+        totalGamesPlayed[msg.sender] += 1;
 
         emit FreePlayUsed(msg.sender);
     }
@@ -50,6 +59,7 @@ contract OPNArcade {
         require(tickets[msg.sender] > 0, "No ticket available");
 
         tickets[msg.sender] -= 1;
+        totalGamesPlayed[msg.sender] += 1;
 
         emit TicketConsumed(msg.sender);
     }

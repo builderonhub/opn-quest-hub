@@ -37,6 +37,8 @@ OPN Quest Hub is an engagement, reward, and utility platform designed for the OP
 
 The platform combines:
 
+## Core Features:
+
 ### Participation Layer
 
 * Daily Check-In System
@@ -63,10 +65,10 @@ The platform combines:
 
 ### Utility Layer
 
-* NFT Economy V2
-* OQH Burn Mechanism
+* NFT-Gated Arcade
 * Arcade Ticket Economy
-* NFT-Gated Arcade Access
+* OQH Utility Expansion
+* Arcade Burn Tracking
 
 ### Analytics Layer
 
@@ -341,6 +343,13 @@ This creates a second utility sink for OQH beyond NFT minting.
 ---
 
 # Sustainability Model
+
+* NFT Mint Costs
+* Arcade Ticket Purchases
+* OQH Burn Mechanisms
+* NFT Utility Boosts
+* Future NFT Upgrades
+* Seasonal Competitions
 
 Traditional Reward Systems
 

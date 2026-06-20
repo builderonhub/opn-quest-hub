@@ -7,7 +7,7 @@ const OQH_VAULT_ADDRESS = "0x9eb231B49da7099D1F61FdF07D0e7aB084628ECF";
 const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
 const REWARD_NFT_ADDRESS = "0x363Cb9894Ea393d4f5B08640537bcCEfbd090680";
-const ARCADE_ADDRESS = "0x85bEc7F9b17455521add193b077992a04d809119";
+const ARCADE_ADDRESS = "0x10e34c07E40207d104c18F4e775c5A429156E9F2";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -29,7 +29,9 @@ const ARCADE_ABI = [
   "function useFreePlay() external",
   "function canUseFreePlay(address user) view returns (bool)",
   "function tickets(address user) view returns (uint256)",
-  "function ticketBalance(address user) view returns (uint256)"
+  "function ticketBalance(address user) view returns (uint256)",
+  "function totalOQHBurned() view returns (uint256)",
+  "function totalTicketsSold() view returns (uint256)"
 ];
 
 const REWARD_NFT_ABI = [
@@ -126,11 +128,15 @@ document.querySelector("#app").innerHTML = `
     </div>
 
     <div class="stat-card">
-      <span>Total OQH Burned</span>
+      <span>Total OQH Burned 🔥</span>
+
       <b>
         <span id="totalOQHBurned">0</span> OQH
       </b>
-      <small>NFT Mint Sink</small>
+
+      <small>
+        NFT + Arcade Utility Burn
+      </small>
     </div>
 
     <div class="stat-card">
@@ -1995,14 +2001,27 @@ async function renderCheckInStreak() {
     console.error("Render check-in streak failed", err);
   }
 }
+
 async function renderTotalOQHBurned() {
   const el = document.getElementById("totalOQHBurned");
 
-  if (!el || !rewardNFTContract) return;
+  if (!el || !rewardNFTContract || !arcadeContract) return;
 
   try {
-    const burned = await rewardNFTContract.totalOQHBurned();
-    el.innerText = Number(ethers.formatUnits(burned, 18)).toLocaleString();
+    const nftBurned =
+      await rewardNFTContract.totalOQHBurned();
+
+    const arcadeBurned =
+      await arcadeContract.totalOQHBurned();
+
+    const totalBurned =
+      nftBurned + arcadeBurned;
+
+    el.innerText =
+      Number(
+        ethers.formatUnits(totalBurned, 18)
+      ).toLocaleString();
+
   } catch (err) {
     console.error("Load total OQH burned failed", err);
     el.innerText = "0";
