@@ -1093,12 +1093,23 @@ function showError(message) {
   setText("passportErrorMessage", message);
 }
 
-document
-  .getElementById("backToQuestHub")
-  .addEventListener("click", () => {
-    window.location.href = "/";
-  });
+const backToQuestHubButton =
+  document.getElementById("backToQuestHub");
 
+if (backToQuestHubButton) {
+  backToQuestHubButton.addEventListener(
+    "click",
+    () => {
+      // Cho phép Quest Hub khôi phục đúng phiên ví này.
+      sessionStorage.setItem(
+        "restoreQuestHubWallet",
+        "true"
+      );
+
+      window.location.href = "/";
+    }
+  );
+}
 
 
 loadPassportPage();

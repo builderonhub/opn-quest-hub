@@ -200,13 +200,33 @@ document.querySelector("#app").innerHTML = `
         Not Minted
       </span>
     </div>
+<div id="passportDisconnected">
+  <div class="passport-empty-emblem">
+    <span>OPN</span>
+  </div>
 
-<div id="passportAnalyzing">
+  <h3>Connect Your Wallet</h3>
+
+  <p class="passport-description">
+    Connect your wallet to load your Passport,
+    Trust Score and Quest Points.
+  </p>
+
+<button
+  id="passportConnectButton"
+  type="button"
+>
+  Connect Wallet
+</button>
+</div>
+<div id="passportAnalyzing" style="display: none">
   <div class="passport-analyzing-spinner"></div>
 
-  <h3>Analyzing Wallet</h3>
+  <h3 id="passportLoadingTitle">
+    Analyzing Wallet
+  </h3>
 
-  <p>
+  <p id="passportLoadingDescription">
     Reading Passport and on-chain activity...
   </p>
 </div>
@@ -752,91 +772,108 @@ async function refreshPoints() {
   }
 }
 
-async function connectWallet({
-  silent = false,
-} = {}) {
+async function connectWallet() {
+  const topBtn =
+    document.getElementById("topConnectBtn");
+
   try {
     const walletProvider = getWalletProvider();
 
     if (!walletProvider) {
+      resetWalletConnectionUI();
       alert("Please install OKX Wallet or MetaMask.");
-      return;
-    }
-
-    if (!silent) {
-      statusText.innerText = "Connecting wallet...";
-
-      await switchToIOPN(walletProvider);
-    }
-
-    const accounts = await walletProvider.request({
-      method: "eth_accounts",
-    });
-
-    if (silent && (!accounts || accounts.length === 0)) {
       return false;
     }
+
+    // Hiện trạng thái Connecting ngay bên trong Passport.
+    setPassportCardState("connecting");
+
+    if (statusText) {
+      statusText.innerText = "";
+    }
+
+    if (connectBtn) {
+      connectBtn.disabled = true;
+      connectBtn.innerText = "Connecting...";
+    }
+
+    if (topBtn) {
+      topBtn.disabled = true;
+      topBtn.innerText = "Connecting...";
+    }
+
+    await switchToIOPN(walletProvider);
 
     const provider =
       new ethers.BrowserProvider(walletProvider);
 
-    if (!silent) {
-      await provider.send("eth_requestAccounts", []);
-    }
+    // Chỉ lệnh này mới yêu cầu người dùng mở khóa/kết nối ví.
+    await provider.send("eth_requestAccounts", []);
 
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
-    const topBtn = document.getElementById("topConnectBtn");
+
+    // Kết nối xong, chuyển Passport sang trạng thái phân tích.
+    setPassportCardState("analyzing");
+
+    if (walletText) {
+      walletText.innerText = shortWallet(userAddress);
+    }
 
     if (topBtn) {
-      topBtn.innerHTML = `
-        🟢 ${shortWallet(userAddress)}
-      `;
+      topBtn.innerText = shortWallet(userAddress);
     }
+
     saveLeaderboardWallet(userAddress);
     updateReferralUI();
 
     arcadeContract = new ethers.Contract(
-        ARCADE_ADDRESS,
-        ARCADE_ABI,
-        signer
-      );
-    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-      opnToken = new ethers.Contract( 
-        OQH_TOKEN_ADDRESS, 
-        OQH_TOKEN_ABI, 
-        signer
-      );
+      ARCADE_ADDRESS,
+      ARCADE_ABI,
+      signer
+    );
+
+    contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      ABI,
+      signer
+    );
+
+    opnToken = new ethers.Contract(
+      OQH_TOKEN_ADDRESS,
+      OQH_TOKEN_ABI,
+      signer
+    );
 
     rewardNFTContract = new ethers.Contract(
-        REWARD_NFT_ADDRESS,
-        REWARD_NFT_ABI,
-        signer
-      );
+      REWARD_NFT_ADDRESS,
+      REWARD_NFT_ABI,
+      signer
+    );
 
-      opnVault = new ethers.Contract(
-        OQH_VAULT_ADDRESS,
-        OQH_VAULT_ABI,
-        signer
-      );
-      opnStakingContract = new ethers.Contract(
-        OPN_STAKING_ADDRESS,
-        OPN_STAKING_ABI,
-        signer
-      );
+    opnVault = new ethers.Contract(
+      OQH_VAULT_ADDRESS,
+      OQH_VAULT_ABI,
+      signer
+    );
 
-      opntTokenContract = new ethers.Contract(
-        OPNT_TOKEN_ADDRESS,
-        ERC20_ABI,
-        signer
-      );
-      passportContract = new ethers.Contract(
-        PASSPORT_ADDRESS,
-        PASSPORT_ABI,
-        signer
-      );
-    walletText.innerText =
-      userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+    opnStakingContract = new ethers.Contract(
+      OPN_STAKING_ADDRESS,
+      OPN_STAKING_ABI,
+      signer
+    );
+
+    opntTokenContract = new ethers.Contract(
+      OPNT_TOKEN_ADDRESS,
+      ERC20_ABI,
+      signer
+    );
+
+    passportContract = new ethers.Contract(
+      PASSPORT_ADDRESS,
+      PASSPORT_ABI,
+      signer
+    );
 
     await updateCheckInButton();
     await renderTotalOQHBurned();
@@ -848,44 +885,82 @@ async function connectWallet({
     await renderQuests();
     await renderOnchainQuests();
     await renderNFTRewards();
-    //await startCountdown();
     await renderDeFiVault();
     await updateFaucetStatus();
     await renderOPNStaking();
     await renderGlobalStakingStats();
     await renderArcadeAccess();
     await loadArcadeStatus();
+
+    // Passport được render sau khi các contract đã sẵn sàng.
     await renderPassportCard();
-    connectBtn.innerText = "Connected";
-    connectBtn.disabled = true;
 
-    updateCheckInButton();
+    if (walletText) {
+      walletText.innerText = shortWallet(userAddress);
+    }
 
-    statusText.innerText = "";
-       return true;
+    if (connectBtn) {
+      connectBtn.innerText = "Connected";
+      connectBtn.disabled = true;
+    }
+
+    if (topBtn) {
+      topBtn.innerText = `● ${shortWallet(userAddress)}`;
+      topBtn.disabled = false;
+    }
+
+    if (statusText) {
+      statusText.innerText = "";
+    }
+
+    return true;
   } catch (error) {
     console.error("CONNECT ERROR:", error);
 
-    if (userAddress) {
-      connectBtn.innerText = "Connected";
-      connectBtn.disabled = true;
-      statusText.innerText = "";
-      return true;
-    }
+    resetWalletConnectionUI();
 
-    if (!silent) {
-      statusText.innerText =
-        "Wallet connection failed. Please try again.";
+    if (statusText) {
+      if (error?.code === 4001) {
+        statusText.innerText =
+          "Wallet connection was cancelled.";
+      } else {
+        statusText.innerText =
+          "Wallet connection failed. Please try again.";
+      }
     }
 
     return false;
   }
 }
-connectBtn.onclick = () => {
-  connectWallet({
-    silent: false,
-  });
-};
+function bindWalletConnectButtons() {
+  const hiddenConnectButton =
+    document.getElementById("connectBtn");
+
+  const topConnectButton =
+    document.getElementById("topConnectBtn");
+
+  const passportConnectButton =
+    document.getElementById("passportConnectButton");
+
+  const startConnection = async () => {
+    console.log("Connect Wallet clicked");
+    await connectWallet();
+  };
+
+  if (hiddenConnectButton) {
+    hiddenConnectButton.onclick = startConnection;
+  }
+
+  if (topConnectButton) {
+    topConnectButton.onclick = startConnection;
+  }
+
+  if (passportConnectButton) {
+    passportConnectButton.onclick = startConnection;
+  }
+}
+
+bindWalletConnectButtons();
 
 const activeWalletProvider = getWalletProvider();
 
@@ -912,34 +987,37 @@ if (
     }
   );
 }
+function resetWalletConnectionUI() {
+  signer = null;
+  userAddress = null;
 
+  contract = null;
+  rewardNFTContract = null;
+  opnToken = null;
+  opnVault = null;
+  opnStakingContract = null;
+  opntTokenContract = null;
+  arcadeContract = null;
+  passportContract = null;
 
-async function restoreWalletConnection() {
-  const walletProvider = getWalletProvider();
+  connectBtn.innerText = "Connect Wallet";
+  connectBtn.disabled = false;
 
-  if (!walletProvider) {
-    return;
+  const topBtn =
+    document.getElementById("topConnectBtn");
+
+  if (topBtn) {
+    topBtn.innerText = "Connect Wallet";
+    topBtn.disabled = false;
   }
 
-  try {
-    const accounts = await walletProvider.request({
-      method: "eth_accounts",
-    });
-
-    if (!accounts || accounts.length === 0) {
-      return;
-    }
-
-    await connectWallet({
-      silent: true,
-    });
-  } catch (error) {
-    console.warn(
-      "Unable to restore wallet connection:",
-      error
-    );
+  if (walletText) {
+    walletText.innerText = "Not Connected";
   }
+
+  setPassportCardState("disconnected");
 }
+
 
 checkInBtn.onclick = async () => {
   try {
@@ -2063,14 +2141,7 @@ window.scrollToSection = function (id) {
   });
 };
 
-const topConnectBtn = document.getElementById("topConnectBtn");
 
-if (topConnectBtn) {
-  topConnectBtn.onclick = () => {
-    const connectBtn = document.getElementById("connectBtn");
-    if (connectBtn) connectBtn.click();
-  };
-}
 
 async function renderWalletStats() {
   try {
@@ -3064,61 +3135,66 @@ async function loadPassportQuestData() {
     goldClaimed,
   };
 }
-function setPassportCardState(state) {
-  const analyzingBox =
-    document.getElementById("passportAnalyzing");
+async function restoreWalletConnection() {
+  const shouldRestore =
+    sessionStorage.getItem(
+      "restoreQuestHubWallet"
+    ) === "true";
 
-  const notMintedBox =
-    document.getElementById("passportNotMinted");
-
-  const profileBox =
-    document.getElementById("passportProfile");
-
-  const statusElement =
-    document.getElementById("questPassportStatus");
-
-  if (analyzingBox) {
-    analyzingBox.style.display =
-      state === "analyzing" ? "grid" : "none";
-  }
-
-  if (notMintedBox) {
-    notMintedBox.style.display =
-      state === "not-minted" ? "block" : "none";
-  }
-
-  if (profileBox) {
-    profileBox.style.display =
-      state === "active" ? "block" : "none";
-  }
-
-  if (!statusElement) return;
-
-  statusElement.classList.remove("active");
-
-  if (state === "analyzing") {
-    statusElement.innerText = "Analyzing";
+  // Không phải quay về từ Passport thì không tự kết nối.
+  if (!shouldRestore) {
     return;
   }
 
-  if (state === "not-minted") {
-    statusElement.innerText = "Not Minted";
+  // Cờ chỉ được sử dụng một lần.
+  sessionStorage.removeItem(
+    "restoreQuestHubWallet"
+  );
+
+  const walletProvider = getWalletProvider();
+
+  if (!walletProvider) {
+    resetWalletConnectionUI();
     return;
   }
 
-  if (state === "active") {
-    statusElement.innerText = "Active";
-    statusElement.classList.add("active");
-    return;
-  }
+  try {
+    const knownAccounts =
+      await walletProvider.request({
+        method: "eth_accounts",
+      });
 
-  if (state === "inactive") {
-    statusElement.innerText = "Inactive";
-    return;
-  }
+    if (
+      !knownAccounts ||
+      knownAccounts.length === 0
+    ) {
+      resetWalletConnectionUI();
 
-  statusElement.innerText = "Unavailable";
+      if (statusText) {
+        statusText.innerText =
+          "Connect your wallet to load on-chain data.";
+      }
+
+      return;
+    }
+
+    // Ví vẫn được website cấp quyền nên kết nối lại.
+    await connectWallet();
+  } catch (error) {
+    console.error(
+      "RESTORE WALLET ERROR:",
+      error
+    );
+
+    resetWalletConnectionUI();
+
+    if (statusText) {
+      statusText.innerText =
+        "Unable to restore wallet connection.";
+    }
+  }
 }
+restoreWalletConnection();
 async function renderPassportCard() {
   if (!passportContract || !userAddress) {
     return;
@@ -3223,6 +3299,117 @@ async function renderPassportCard() {
     setPassportCardState("unavailable");
   }
 }
+function setPassportCardState(state) {
+  const disconnectedBox =
+    document.getElementById("passportDisconnected");
+
+  const analyzingBox =
+    document.getElementById("passportAnalyzing");
+
+  const notMintedBox =
+    document.getElementById("passportNotMinted");
+
+  const profileBox =
+    document.getElementById("passportProfile");
+
+  const statusElement =
+    document.getElementById("questPassportStatus");
+
+  const loadingTitle =
+    document.getElementById("passportLoadingTitle");
+
+  const loadingDescription =
+    document.getElementById("passportLoadingDescription");
+
+  if (disconnectedBox) disconnectedBox.style.display = "none";
+  if (analyzingBox) analyzingBox.style.display = "none";
+  if (notMintedBox) notMintedBox.style.display = "none";
+  if (profileBox) profileBox.style.display = "none";
+
+  if (statusElement) {
+    statusElement.classList.remove("active");
+  }
+
+  if (state === "connecting") {
+    if (analyzingBox) analyzingBox.style.display = "block";
+
+    if (loadingTitle) {
+      loadingTitle.innerText = "Connecting Wallet";
+    }
+
+    if (loadingDescription) {
+      loadingDescription.innerText =
+        "Please confirm the connection in your wallet.";
+    }
+
+    if (statusElement) {
+      statusElement.innerText = "Connecting";
+    }
+
+    return;
+  }
+
+  if (state === "analyzing") {
+    if (analyzingBox) analyzingBox.style.display = "block";
+
+    if (loadingTitle) {
+      loadingTitle.innerText = "Analyzing Wallet";
+    }
+
+    if (loadingDescription) {
+      loadingDescription.innerText =
+        "Reading Passport and on-chain activity...";
+    }
+
+    if (statusElement) {
+      statusElement.innerText = "Analyzing";
+    }
+
+    return;
+  }
+
+  if (state === "not-minted") {
+    if (notMintedBox) notMintedBox.style.display = "block";
+
+    if (statusElement) {
+      statusElement.innerText = "Not Minted";
+    }
+
+    return;
+  }
+
+  if (state === "active" || state === "inactive") {
+    if (profileBox) profileBox.style.display = "block";
+
+    if (statusElement) {
+      statusElement.innerText =
+        state === "active" ? "Active" : "Inactive";
+
+      statusElement.classList.toggle(
+        "active",
+        state === "active"
+      );
+    }
+
+    return;
+  }
+
+  if (state === "unavailable") {
+    if (disconnectedBox) disconnectedBox.style.display = "block";
+
+    if (statusElement) {
+      statusElement.innerText = "Unavailable";
+    }
+
+    return;
+  }
+
+  if (disconnectedBox) disconnectedBox.style.display = "block";
+
+  if (statusElement) {
+    statusElement.innerText = "Not Connected";
+  }
+}
 function setPassportText(id, value) {
   const element = document.getElementById(id);
 
@@ -3281,17 +3468,34 @@ window.openQuestPassport = async function () {
     return;
   }
 
-  const passport = await loadPassport();
+  try {
+    const passport = await loadPassport();
 
-  if (!passport || passport.tokenId === 0) {
-    alert("Mint your Passport first");
-    return;
+    if (!passport || passport.tokenId === 0) {
+      alert("Mint your Passport first");
+      return;
+    }
+
+    // Ghi nhớ rằng người dùng đang đi từ Quest Hub.
+    sessionStorage.setItem(
+      "restoreQuestHubWallet",
+      "true"
+    );
+
+    const passportUrl =
+      `/passport.html?wallet=${encodeURIComponent(
+        userAddress
+      )}`;
+
+    window.location.href = passportUrl;
+  } catch (error) {
+    console.error(
+      "OPEN PASSPORT ERROR:",
+      error
+    );
+
+    alert("Unable to open Passport.");
   }
-
-  const passportUrl =
-    `/passport.html?wallet=${encodeURIComponent(userAddress)}`;
-
-  window.location.href = passportUrl;
 };
 
 
@@ -3329,4 +3533,4 @@ window.mintQuestPassport = async function () {
     );
   }
 };
-restoreWalletConnection();
+setPassportCardState("disconnected");
