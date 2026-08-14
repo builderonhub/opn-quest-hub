@@ -3506,21 +3506,32 @@ window.mintQuestPassport = async function () {
     return;
   }
 
+  const mintButton =
+    document.getElementById("mintPassportBtn");
+
   try {
-    const exists = await passportContract.hasPassport(userAddress);
+    const exists =
+      await passportContract.hasPassport(userAddress);
 
     if (exists) {
-      alert("Wallet already has a Passport");
+      await renderPassportCard();
       return;
     }
 
-    const tx = await passportContract.mintPassport();
+    if (mintButton) {
+      mintButton.disabled = true;
+      mintButton.innerText = "Minting...";
+    }
 
-    console.log("Passport mint transaction:", tx.hash);
+    const tx =
+      await passportContract.mintPassport();
+
+    console.log(
+      "Passport mint transaction:",
+      tx.hash
+    );
 
     await tx.wait();
-
-    alert("Passport minted successfully");
 
     await renderPassportCard();
   } catch (error) {
@@ -3531,6 +3542,11 @@ window.mintQuestPassport = async function () {
       error?.reason ||
       "Mint Passport failed"
     );
+  } finally {
+    if (mintButton) {
+      mintButton.disabled = false;
+      mintButton.innerText = "Mint Passport";
+    }
   }
 };
 setPassportCardState("disconnected");
