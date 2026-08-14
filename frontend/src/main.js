@@ -8,6 +8,9 @@ const OPNT_TOKEN_ADDRESS = "0x2aEc1Db9197Ff284011A6A1d0752AD03F5782B0d";
 const OPN_STAKING_ADDRESS = "0x4f107f185D670C28280972b34291A37bbBf9ca4A";
 const REWARD_NFT_ADDRESS = "0x363Cb9894Ea393d4f5B08640537bcCEfbd090680";
 const ARCADE_ADDRESS = "0x10e34c07E40207d104c18F4e775c5A429156E9F2";
+
+const PASSPORT_ADDRESS =  "0xE1ab0048207B3384121E753Ff04B853c70A8E7a0";
+const LEVEL_NFT_ADDRESS =  "0xb0d3D6EB88262A89bD32a6AbF39e99eCa96Daa19";
 const CHAIN_ID = "0x3d8";
 
 const ABI = [
@@ -80,6 +83,18 @@ const ERC20_ABI = [
   "function decimals() view returns(uint8)"
 ];
 
+
+
+
+const PASSPORT_ABI = [
+  "function mintPassport() returns (uint256)",
+  "function passportOf(address wallet) view returns (uint256)",
+  "function hasPassport(address wallet) view returns (bool)",
+  "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, bool active)",
+  "function hasCredential(address wallet, uint8 credentialType) view returns (bool)",
+  "function claimCredential(uint8 credentialType)",
+  "function credentialThreshold(uint8 credentialType) pure returns (uint16)",
+];
 document.querySelector("#app").innerHTML = `
   <div class="app-shell">
     <header class="top-nav">
@@ -164,49 +179,132 @@ document.querySelector("#app").innerHTML = `
     </section>
 
     <main class="dashboard-main">
-      <aside class="profile-panel">
-        <h2>Your Profile</h2>
 
-        <div class="profile-circle">
-          <b id="profilePoints">0</b>
+
+
+ <aside class="profile-panel passport-profile-panel">
+  <section class="passport-summary-card passport-main-card">
+    <div class="passport-summary-top">
+      <div>
+        <span class="passport-kicker">
+          OPN Identity
+        </span>
+
+        <h3>Quest Passport</h3>
+      </div>
+
+      <span
+        id="questPassportStatus"
+        class="passport-status"
+      >
+        Not Minted
+      </span>
+    </div>
+
+<div id="passportAnalyzing">
+  <div class="passport-analyzing-spinner"></div>
+
+  <h3>Analyzing Wallet</h3>
+
+  <p>
+    Reading Passport and on-chain activity...
+  </p>
+</div>
+
+<div id="passportNotMinted" style="display: none">
+      <div class="passport-empty-emblem">
+        <span>OPN</span>
+      </div>
+
+      <h3>Create Your Identity</h3>
+
+      <p class="passport-description">
+        Mint your permanent soulbound identity for
+        OPN Quest Hub.
+      </p>
+
+      <button
+        id="mintPassportBtn"
+        type="button"
+        onclick="mintQuestPassport()"
+      >
+        Mint Passport
+      </button>
+    </div>
+
+    <div id="passportProfile" style="display: none">
+      <div class="passport-main-emblem">
+        <div>
+          <span>OPN</span>
+        </div>
+      </div>
+
+      <div class="passport-summary-id">
+        <span>Passport ID</span>
+        <b id="questPassportId">—</b>
+      </div>
+
+      <div class="passport-main-level">
+        <span>Identity Level</span>
+        <strong id="questPassportLevel">L1</strong>
+      </div>
+
+      <div class="passport-summary-grid">
+        <div>
+          <span>Trust Score</span>
+          <b id="questPassportScore">0</b>
         </div>
 
-        <p class="profile-wallet" id="wallet">Not Connected</p>
+        <div>
+          <span>Quest Points</span>
+          <b id="questPassportPoints">0</b>
+        </div>
+      </div>
 
-        <div class="profile-info-row">
-          <span>Badge Level</span>
-          <b id="userBadge">No Badge</b>
+      <div class="passport-main-progress">
+        <div class="passport-main-progress-label">
+          <span>Identity Progress</span>
+          <span>
+            <b id="passportSmallProgressText">0</b>/1000
+          </span>
         </div>
 
-        <div class="profile-info-row">
-          <span>Contract</span>
-          <b class="mono">${CONTRACT_ADDRESS}</b>
+        <div class="passport-main-progress-track">
+          <div id="passportSmallProgressFill"></div>
         </div>
+      </div>
 
-        <div class="profile-stats">
-        <div class="profile-stats-box">
-         <p>
-        <span>Days on IOPN:</span>
-        <b id="walletDays">0</b>
-        </p>
+      <button
+        class="passport-view-button"
+        type="button"
+        onclick="openQuestPassport()"
+      >
+        View Full Passport
+      </button>
+    </div>
 
-        <p>
-          <span>Total TX:</span>
-          <b id="walletTxCount">0</b>
-        </p>
+    <div class="passport-wallet-footer">
+      <span>Wallet</span>
+      <b id="wallet">Not Connected</b>
+    </div>
 
-        <p>
-          <span>Quests Done:</span>
-          <b id="questsCompleted">0</b>
-        </p>
-        </div>
-  
-        <button id="connectBtn" class="hidden-connect-btn">
-          Connect OKX or MetaMask Wallet
-        </button>
+    <div class="passport-network-footer">
+      <span class="passport-network-dot"></span>
+      IOPN Testnet · Soulbound Identity
+    </div>
+  </section>
 
-        <p id="status"></p>
-      </aside>
+  <!-- JavaScript cần giữ lại hai phần tử này -->
+  <button
+    id="connectBtn"
+    class="hidden-connect-btn"
+    type="button"
+  >
+    Connect Wallet
+  </button>
+
+  <p id="status"></p>
+</aside>
 
       <section class="center-panel">
         <div class="card checkin-card">
@@ -402,6 +500,11 @@ document.querySelector("#app").innerHTML = `
 
       </section>
     </main>
+
+</main>
+
+
+
       <button id="backToTopBtn" onclick="scrollToTop()">
         ↑
       </button>
@@ -428,6 +531,8 @@ let opnStakingContract;
 let opntTokenContract;
 let isRenderingNFTRewards = false;
 let arcadeContract;
+
+let passportContract;
 
 function randomPoints() {
   const rewards = [10, 20, 30, 40, 50];
@@ -647,7 +752,9 @@ async function refreshPoints() {
   }
 }
 
-connectBtn.onclick = async () => {
+async function connectWallet({
+  silent = false,
+} = {}) {
   try {
     const walletProvider = getWalletProvider();
 
@@ -656,12 +763,26 @@ connectBtn.onclick = async () => {
       return;
     }
 
-    statusText.innerText = "Connecting wallet...";
+    if (!silent) {
+      statusText.innerText = "Connecting wallet...";
 
-    await switchToIOPN(walletProvider);
+      await switchToIOPN(walletProvider);
+    }
 
-    const provider = new ethers.BrowserProvider(walletProvider);
-    await provider.send("eth_requestAccounts", []);
+    const accounts = await walletProvider.request({
+      method: "eth_accounts",
+    });
+
+    if (silent && (!accounts || accounts.length === 0)) {
+      return false;
+    }
+
+    const provider =
+      new ethers.BrowserProvider(walletProvider);
+
+    if (!silent) {
+      await provider.send("eth_requestAccounts", []);
+    }
 
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
@@ -709,7 +830,11 @@ connectBtn.onclick = async () => {
         ERC20_ABI,
         signer
       );
-
+      passportContract = new ethers.Contract(
+        PASSPORT_ADDRESS,
+        PASSPORT_ABI,
+        signer
+      );
     walletText.innerText =
       userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
 
@@ -730,25 +855,91 @@ connectBtn.onclick = async () => {
     await renderGlobalStakingStats();
     await renderArcadeAccess();
     await loadArcadeStatus();
-   
+    await renderPassportCard();
     connectBtn.innerText = "Connected";
     connectBtn.disabled = true;
 
     updateCheckInButton();
 
     statusText.innerText = "";
-    } catch (error) {
+       return true;
+  } catch (error) {
     console.error("CONNECT ERROR:", error);
 
     if (userAddress) {
       connectBtn.innerText = "Connected";
       connectBtn.disabled = true;
       statusText.innerText = "";
-    } else {
-      statusText.innerText = "Wallet connection failed. Please try again.";
+      return true;
     }
+
+    if (!silent) {
+      statusText.innerText =
+        "Wallet connection failed. Please try again.";
+    }
+
+    return false;
   }
+}
+connectBtn.onclick = () => {
+  connectWallet({
+    silent: false,
+  });
 };
+
+const activeWalletProvider = getWalletProvider();
+
+if (
+  activeWalletProvider &&
+  typeof activeWalletProvider.on === "function"
+) {
+  activeWalletProvider.on(
+    "accountsChanged",
+    async (accounts) => {
+      if (!accounts || accounts.length === 0) {
+        window.location.reload();
+        return;
+      }
+
+      window.location.reload();
+    }
+  );
+
+  activeWalletProvider.on(
+    "chainChanged",
+    () => {
+      window.location.reload();
+    }
+  );
+}
+
+
+async function restoreWalletConnection() {
+  const walletProvider = getWalletProvider();
+
+  if (!walletProvider) {
+    return;
+  }
+
+  try {
+    const accounts = await walletProvider.request({
+      method: "eth_accounts",
+    });
+
+    if (!accounts || accounts.length === 0) {
+      return;
+    }
+
+    await connectWallet({
+      silent: true,
+    });
+  } catch (error) {
+    console.warn(
+      "Unable to restore wallet connection:",
+      error
+    );
+  }
+}
 
 checkInBtn.onclick = async () => {
   try {
@@ -2502,3 +2693,640 @@ window.onkeydown = async function (e) {
 
   await window.startOPNGame();
 };
+const IOPN_EXPLORER_API =
+  "https://testnet.iopn.tech/api/v2";
+
+const TRUST_SCORE_CACHE_TIME = 5 * 60 * 1000;
+
+const trustScoreCache = new Map();
+
+async function fetchAllWalletTransactions(wallet) {
+  let transactions = [];
+  let nextPageParams = null;
+  let pageCount = 0;
+
+  // Giới hạn để tránh browser bị treo nếu Explorer lỗi pagination.
+  const maxPages = 200;
+
+  while (pageCount < maxPages) {
+    let url =
+      `${IOPN_EXPLORER_API}/addresses/${wallet}/transactions`;
+
+    if (nextPageParams) {
+      const params =
+        new URLSearchParams(nextPageParams).toString();
+
+      url += `?${params}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `Explorer request failed: HTTP ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data.items)
+      ? data.items
+      : [];
+
+    transactions = transactions.concat(items);
+    pageCount++;
+
+    if (!data.next_page_params) {
+      break;
+    }
+
+    nextPageParams = data.next_page_params;
+  }
+
+  return transactions;
+}
+
+function clampTrustScore(value, minimum, maximum) {
+  return Math.max(minimum, Math.min(value, maximum));
+}
+
+function calculateLogScore(
+  value,
+  maximumInput,
+  maximumScore
+) {
+  if (!value || value <= 0) {
+    return 0;
+  }
+
+  const normalized =
+    Math.log10(value + 1) /
+    Math.log10(maximumInput + 1);
+
+  return Math.pow(normalized, 1.7) * maximumScore;
+}
+
+function getCalculatedPassportLevel(score) {
+  if (score >= 980) return 10;
+  if (score >= 900) return 9;
+  if (score >= 830) return 8;
+  if (score >= 750) return 7;
+  if (score >= 650) return 6;
+  if (score >= 550) return 5;
+  if (score >= 450) return 4;
+  if (score >= 300) return 3;
+  if (score >= 150) return 2;
+
+  return 1;
+}
+
+async function calculateWalletTrustScore(wallet) {
+  const cacheKey = wallet.toLowerCase();
+  const cached = trustScoreCache.get(cacheKey);
+
+  if (
+    cached &&
+    Date.now() - cached.createdAt < TRUST_SCORE_CACHE_TIME
+  ) {
+    return cached.data;
+  }
+
+  const transactions =
+    await fetchAllWalletTransactions(wallet);
+
+  if (!transactions.length) {
+    const emptyResult = {
+      trustScore: 0,
+      level: 1,
+      walletAgeDays: 0,
+      activeDays: 0,
+      transactionCount: 0,
+      contractsUsed: 0,
+      gasSpent: 0,
+      totalVolume: 0,
+      identityScore: 0,
+      activityScore: 0,
+      economicScore: 0,
+      diversityScore: 0,
+    };
+
+    trustScoreCache.set(cacheKey, {
+      createdAt: Date.now(),
+      data: emptyResult,
+    });
+
+    return emptyResult;
+  }
+
+  const timestamps = transactions
+    .map((transaction) => transaction.timestamp)
+    .filter(Boolean)
+    .map((timestamp) => new Date(timestamp))
+    .filter((date) => !Number.isNaN(date.getTime()));
+
+  if (!timestamps.length) {
+    throw new Error(
+      "Explorer returned transactions without valid timestamps"
+    );
+  }
+
+  const firstTransactionTime = Math.min(
+    ...timestamps.map((date) => date.getTime())
+  );
+
+  const walletAgeDays = Math.max(
+    0,
+    Math.floor(
+      (Date.now() - firstTransactionTime) /
+      (1000 * 60 * 60 * 24)
+    )
+  );
+
+  const activeDateSet = new Set(
+    timestamps.map((date) =>
+      date.toISOString().slice(0, 10)
+    )
+  );
+
+  const activeDays = activeDateSet.size;
+  const transactionCount = transactions.length;
+
+  const destinationSet = new Set();
+
+  let gasSpent = 0;
+  let totalVolume = 0;
+
+  for (const transaction of transactions) {
+    const destination =
+      transaction.to?.hash ||
+      transaction.to_address_hash ||
+      transaction.to;
+
+    if (typeof destination === "string") {
+      destinationSet.add(destination.toLowerCase());
+    }
+
+    const feeValue =
+      transaction.fee?.value ??
+      transaction.fee ??
+      transaction.gas_fee ??
+      0;
+
+    const transactionValue =
+      transaction.value ?? 0;
+
+    const parsedFee = Number(feeValue);
+    const parsedValue = Number(transactionValue);
+
+    if (Number.isFinite(parsedFee)) {
+      gasSpent += parsedFee / 1e18;
+    }
+
+    if (Number.isFinite(parsedValue)) {
+      totalVolume += parsedValue / 1e18;
+    }
+  }
+
+  const contractsUsed = destinationSet.size;
+
+  // Identity: tối đa 250
+  const walletAgeScore = calculateLogScore(
+    walletAgeDays,
+    365,
+    180
+  );
+
+  const identityConsistencyScore = calculateLogScore(
+    activeDays,
+    180,
+    70
+  );
+
+  const identityScore = clampTrustScore(
+    Math.round(
+      walletAgeScore + identityConsistencyScore
+    ),
+    0,
+    250
+  );
+
+  // Activity: tối đa 350
+  const activeDaysScore = calculateLogScore(
+    activeDays,
+    300,
+    200
+  );
+
+  const transactionScore = calculateLogScore(
+    transactionCount,
+    1000,
+    150
+  );
+
+  const activityScore = clampTrustScore(
+    Math.round(
+      activeDaysScore + transactionScore
+    ),
+    0,
+    350
+  );
+
+  // Economic: tối đa 300
+  const volumeScore = calculateLogScore(
+    totalVolume,
+    5000,
+    180
+  );
+
+  const gasScore = calculateLogScore(
+    gasSpent,
+    10,
+    120
+  );
+
+  const economicScore = clampTrustScore(
+    Math.round(volumeScore + gasScore),
+    0,
+    300
+  );
+
+  // Diversity: tối đa 100
+  const diversityScore = clampTrustScore(
+    Math.round(
+      calculateLogScore(contractsUsed, 60, 100)
+    ),
+    0,
+    100
+  );
+
+  const trustScore = clampTrustScore(
+    identityScore +
+      activityScore +
+      economicScore +
+      diversityScore,
+    0,
+    1000
+  );
+
+  const result = {
+    trustScore,
+    level: getCalculatedPassportLevel(trustScore),
+    walletAgeDays,
+    activeDays,
+    transactionCount,
+    contractsUsed,
+    gasSpent,
+    totalVolume,
+    identityScore,
+    activityScore,
+    economicScore,
+    diversityScore,
+  };
+
+  trustScoreCache.set(cacheKey, {
+    createdAt: Date.now(),
+    data: result,
+  });
+
+  return result;
+}
+function clearWalletTrustScoreCache(wallet) {
+  if (!wallet) return;
+
+  trustScoreCache.delete(wallet.toLowerCase());
+}
+const PASSPORT_LEVEL_NAMES = {
+  1: "New Identity",
+  2: "Verified Wallet",
+  3: "Explorer",
+  4: "Active Explorer",
+  5: "Contributor",
+  6: "Trusted Contributor",
+  7: "Network Citizen",
+  8: "Senior Citizen",
+  9: "Guardian",
+  10: "OPN Citizen",
+};
+
+function getPassportLevelName(level) {
+  return PASSPORT_LEVEL_NAMES[level] || "New Identity";
+}
+async function loadPassport() {
+  if (!passportContract || !userAddress) {
+    return null;
+  }
+
+  const result = await passportContract.getPassport(userAddress);
+
+  return {
+    tokenId: Number(result.tokenId),
+    trustScore: Number(result.trustScore),
+    level: Number(result.level),
+    issuedAt: Number(result.issuedAt),
+    updatedAt: Number(result.updatedAt),
+    active: result.active,
+  };
+}
+async function loadPassportQuestData() {
+  if (
+    !contract ||
+    !opnStakingContract ||
+    !rewardNFTContract ||
+    !userAddress
+  ) {
+    return {
+      questPoints: 0,
+      bronzeClaimed: false,
+      silverClaimed: false,
+      goldClaimed: false,
+    };
+  }
+
+  const [
+    baseQuestPoints,
+    stakingPoints,
+    bronzeClaimed,
+    silverClaimed,
+    goldClaimed,
+  ] = await Promise.all([
+    contract.getPoints(userAddress),
+    opnStakingContract.claimedPoints(userAddress),
+    rewardNFTContract.hasClaimedNFT(userAddress, 1),
+    rewardNFTContract.hasClaimedNFT(userAddress, 2),
+    rewardNFTContract.hasClaimedNFT(userAddress, 3),
+  ]);
+
+  return {
+    questPoints:
+      Number(baseQuestPoints) + Number(stakingPoints),
+
+    bronzeClaimed,
+    silverClaimed,
+    goldClaimed,
+  };
+}
+function setPassportCardState(state) {
+  const analyzingBox =
+    document.getElementById("passportAnalyzing");
+
+  const notMintedBox =
+    document.getElementById("passportNotMinted");
+
+  const profileBox =
+    document.getElementById("passportProfile");
+
+  const statusElement =
+    document.getElementById("questPassportStatus");
+
+  if (analyzingBox) {
+    analyzingBox.style.display =
+      state === "analyzing" ? "grid" : "none";
+  }
+
+  if (notMintedBox) {
+    notMintedBox.style.display =
+      state === "not-minted" ? "block" : "none";
+  }
+
+  if (profileBox) {
+    profileBox.style.display =
+      state === "active" ? "block" : "none";
+  }
+
+  if (!statusElement) return;
+
+  statusElement.classList.remove("active");
+
+  if (state === "analyzing") {
+    statusElement.innerText = "Analyzing";
+    return;
+  }
+
+  if (state === "not-minted") {
+    statusElement.innerText = "Not Minted";
+    return;
+  }
+
+  if (state === "active") {
+    statusElement.innerText = "Active";
+    statusElement.classList.add("active");
+    return;
+  }
+
+  if (state === "inactive") {
+    statusElement.innerText = "Inactive";
+    return;
+  }
+
+  statusElement.innerText = "Unavailable";
+}
+async function renderPassportCard() {
+  if (!passportContract || !userAddress) {
+    return;
+  }
+
+  setPassportCardState("analyzing");
+
+  try {
+    const [passport, trustData] =
+      await Promise.all([
+        loadPassport(),
+        calculateWalletTrustScore(userAddress),
+      ]);
+
+    if (!passport || passport.tokenId === 0) {
+      setPassportCardState("not-minted");
+      return;
+    }
+
+    const questData =
+      await loadPassportQuestData();
+
+    const passportId =
+      `OPN-${String(passport.tokenId).padStart(6, "0")}`;
+
+    const displayedTrustScore =
+      trustData.trustScore;
+
+    const displayedLevel =
+      trustData.level;
+
+    setPassportText(
+      "questPassportId",
+      passportId
+    );
+
+    setPassportText(
+      "questPassportLevel",
+      `L${displayedLevel}`
+    );
+
+    setPassportText(
+      "questPassportScore",
+      displayedTrustScore
+    );
+
+    setPassportText(
+      "questPassportPoints",
+      questData.questPoints.toLocaleString()
+    );
+
+    const smallScoreFill =
+      document.getElementById(
+        "passportSmallProgressFill"
+      );
+
+    const smallProgressText =
+      document.getElementById(
+        "passportSmallProgressText"
+      );
+
+    if (smallScoreFill) {
+      smallScoreFill.style.width =
+        `${Math.min(
+          displayedTrustScore / 10,
+          100
+        )}%`;
+    }
+
+    if (smallProgressText) {
+      smallProgressText.innerText =
+        displayedTrustScore;
+    }
+
+    renderPassportAchievement(
+      "passportBronze",
+      questData.bronzeClaimed,
+      questData.questPoints >= 100
+    );
+
+    renderPassportAchievement(
+      "passportSilver",
+      questData.silverClaimed,
+      questData.questPoints >= 500
+    );
+
+    renderPassportAchievement(
+      "passportGold",
+      questData.goldClaimed,
+      questData.questPoints >= 1000
+    );
+
+    setPassportCardState(
+      passport.active ? "active" : "inactive"
+    );
+  } catch (error) {
+    console.error(
+      "Load Passport failed:",
+      error
+    );
+
+    setPassportCardState("unavailable");
+  }
+}
+function setPassportText(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.innerText = value;
+  }
+}
+
+function renderPassportAchievement(
+  elementId,
+  claimed,
+  eligible
+) {
+  const element = document.getElementById(elementId);
+
+  if (!element) return;
+
+  element.classList.remove(
+    "claimed",
+    "eligible",
+    "locked"
+  );
+
+  const status = element.querySelector("b");
+
+  if (claimed) {
+    element.classList.add("claimed");
+
+    if (status) {
+      status.innerText = "Claimed";
+    }
+
+    return;
+  }
+
+  if (eligible) {
+    element.classList.add("eligible");
+
+    if (status) {
+      status.innerText = "Eligible";
+    }
+
+    return;
+  }
+
+  element.classList.add("locked");
+
+  if (status) {
+    status.innerText = "Locked";
+  }
+}
+
+window.openQuestPassport = async function () {
+  if (!userAddress) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  const passport = await loadPassport();
+
+  if (!passport || passport.tokenId === 0) {
+    alert("Mint your Passport first");
+    return;
+  }
+
+  const passportUrl =
+    `/passport.html?wallet=${encodeURIComponent(userAddress)}`;
+
+  window.location.href = passportUrl;
+};
+
+
+
+window.mintQuestPassport = async function () {
+  if (!passportContract || !userAddress) {
+    alert("Connect wallet first");
+    return;
+  }
+
+  try {
+    const exists = await passportContract.hasPassport(userAddress);
+
+    if (exists) {
+      alert("Wallet already has a Passport");
+      return;
+    }
+
+    const tx = await passportContract.mintPassport();
+
+    console.log("Passport mint transaction:", tx.hash);
+
+    await tx.wait();
+
+    alert("Passport minted successfully");
+
+    await renderPassportCard();
+  } catch (error) {
+    console.error("Mint Passport failed:", error);
+
+    alert(
+      error?.shortMessage ||
+      error?.reason ||
+      "Mint Passport failed"
+    );
+  }
+};
+restoreWalletConnection();
