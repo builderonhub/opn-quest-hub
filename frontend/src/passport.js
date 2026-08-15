@@ -1294,7 +1294,7 @@ if (backToQuestHubButton) {
   backToQuestHubButton.addEventListener(
     "click",
     () => {
-      // Cho phép Quest Hub khôi phục đúng phiên ví này.
+      
       sessionStorage.setItem(
         "restoreQuestHubWallet",
         "true"

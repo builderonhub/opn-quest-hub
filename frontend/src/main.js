@@ -785,7 +785,7 @@ async function connectWallet() {
       return false;
     }
 
-    // Hiện trạng thái Connecting ngay bên trong Passport.
+
     setPassportCardState("connecting");
 
     if (statusText) {
@@ -807,13 +807,13 @@ async function connectWallet() {
     const provider =
       new ethers.BrowserProvider(walletProvider);
 
-    // Chỉ lệnh này mới yêu cầu người dùng mở khóa/kết nối ví.
+
     await provider.send("eth_requestAccounts", []);
 
     signer = await provider.getSigner();
     userAddress = await signer.getAddress();
 
-    // Kết nối xong, chuyển Passport sang trạng thái phân tích.
+
     setPassportCardState("analyzing");
 
     if (walletText) {
@@ -892,7 +892,7 @@ async function connectWallet() {
     await renderArcadeAccess();
     await loadArcadeStatus();
 
-    // Passport được render sau khi các contract đã sẵn sàng.
+
     await renderPassportCard();
 
     if (walletText) {
@@ -2776,7 +2776,7 @@ async function fetchAllWalletTransactions(wallet) {
   let nextPageParams = null;
   let pageCount = 0;
 
-  // Giới hạn để tránh browser bị treo nếu Explorer lỗi pagination.
+
   const maxPages = 200;
 
   while (pageCount < maxPages) {
@@ -2854,7 +2854,7 @@ async function calculateWalletTrustScore(wallet) {
   const cacheKey =
     wallet.toLowerCase();
 
-  // 1. Kiểm tra RAM cache trước
+
   const cached =
     trustScoreCache.get(cacheKey);
 
@@ -2870,8 +2870,7 @@ async function calculateWalletTrustScore(wallet) {
     return cached.data;
   }
 
-  // 2. Nếu vừa quay về từ Full Passport,
-  // dùng sessionStorage, KHÔNG gọi Explorer lại
+
   const savedTrustData =
     loadPassportTrustData(wallet);
 
@@ -2880,7 +2879,7 @@ async function calculateWalletTrustScore(wallet) {
       "Trust Score: using session cache"
     );
 
-    // Đưa lại vào RAM cache
+
     trustScoreCache.set(
       cacheKey,
       {
@@ -2892,7 +2891,7 @@ async function calculateWalletTrustScore(wallet) {
     return savedTrustData;
   }
 
-  // 3. Chỉ khi không có cache mới gọi Explorer
+
   console.log(
     "Trust Score: fetching Explorer API"
   );
@@ -2995,7 +2994,7 @@ async function calculateWalletTrustScore(wallet) {
 
   const contractsUsed = destinationSet.size;
 
-  // Identity: tối đa 250
+
   const walletAgeScore = calculateLogScore(
     walletAgeDays,
     365,
@@ -3016,7 +3015,7 @@ async function calculateWalletTrustScore(wallet) {
     250
   );
 
-  // Activity: tối đa 350
+
   const activeDaysScore = calculateLogScore(
     activeDays,
     300,
@@ -3037,7 +3036,7 @@ async function calculateWalletTrustScore(wallet) {
     350
   );
 
-  // Economic: tối đa 300
+
   const volumeScore = calculateLogScore(
     totalVolume,
     5000,
@@ -3056,7 +3055,7 @@ async function calculateWalletTrustScore(wallet) {
     300
   );
 
-  // Diversity: tối đa 100
+
   const diversityScore = clampTrustScore(
     Math.round(
       calculateLogScore(contractsUsed, 60, 100)
@@ -3184,7 +3183,7 @@ function loadPassportTrustData(wallet) {
       return null;
     }
 
-    // Dùng cache tối đa 5 phút
+
     if (
       !saved.savedAt ||
       Date.now() - saved.savedAt >
@@ -3312,12 +3311,12 @@ async function restoreWalletConnection() {
       "restoreQuestHubWallet"
     ) === "true";
 
-  // Không phải quay về từ Passport thì không tự kết nối.
+
   if (!shouldRestore) {
     return;
   }
 
-  // Cờ chỉ được sử dụng một lần.
+ 
   sessionStorage.removeItem(
     "restoreQuestHubWallet"
   );
@@ -3349,7 +3348,7 @@ async function restoreWalletConnection() {
       return;
     }
 
-    // Ví vẫn được website cấp quyền nên kết nối lại.
+    
     await connectWallet();
   } catch (error) {
     console.error(
@@ -3673,7 +3672,7 @@ window.openQuestPassport = async function () {
       return;
     }
 
-    // Ghi nhớ rằng người dùng đang đi từ Quest Hub.
+    
     sessionStorage.setItem(
       "restoreQuestHubWallet",
       "true"
