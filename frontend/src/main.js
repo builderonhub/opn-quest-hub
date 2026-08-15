@@ -90,7 +90,7 @@ const PASSPORT_ABI = [
   "function mintPassport() returns (uint256)",
   "function passportOf(address wallet) view returns (uint256)",
   "function hasPassport(address wallet) view returns (bool)",
-  "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, bool active)",
+ "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, uint64 displayId, bool active)",
   "function hasCredential(address wallet, uint8 credentialType) view returns (bool)",
   "function claimCredential(uint8 credentialType)",
   "function credentialThreshold(uint8 credentialType) pure returns (uint16)",
@@ -2851,15 +2851,51 @@ function getCalculatedPassportLevel(score) {
 }
 
 async function calculateWalletTrustScore(wallet) {
-  const cacheKey = wallet.toLowerCase();
-  const cached = trustScoreCache.get(cacheKey);
+  const cacheKey =
+    wallet.toLowerCase();
+
+  // 1. Kiểm tra RAM cache trước
+  const cached =
+    trustScoreCache.get(cacheKey);
 
   if (
     cached &&
-    Date.now() - cached.createdAt < TRUST_SCORE_CACHE_TIME
+    Date.now() - cached.createdAt <
+      TRUST_SCORE_CACHE_TIME
   ) {
+    console.log(
+      "Trust Score: using memory cache"
+    );
+
     return cached.data;
   }
+
+  // 2. Nếu vừa quay về từ Full Passport,
+  // dùng sessionStorage, KHÔNG gọi Explorer lại
+  const savedTrustData =
+    loadPassportTrustData(wallet);
+
+  if (savedTrustData) {
+    console.log(
+      "Trust Score: using session cache"
+    );
+
+    // Đưa lại vào RAM cache
+    trustScoreCache.set(
+      cacheKey,
+      {
+        createdAt: Date.now(),
+        data: savedTrustData,
+      }
+    );
+
+    return savedTrustData;
+  }
+
+  // 3. Chỉ khi không có cache mới gọi Explorer
+  console.log(
+    "Trust Score: fetching Explorer API"
+  );
 
   const transactions =
     await fetchAllWalletTransactions(wallet);
@@ -3063,7 +3099,36 @@ async function calculateWalletTrustScore(wallet) {
 function clearWalletTrustScoreCache(wallet) {
   if (!wallet) return;
 
-  trustScoreCache.delete(wallet.toLowerCase());
+  trustScoreCache.delete(
+    wallet.toLowerCase()
+  );
+
+  try {
+    const raw =
+      sessionStorage.getItem(
+        "questPassportTrustData"
+      );
+
+    if (!raw) return;
+
+    const saved =
+      JSON.parse(raw);
+
+    if (
+      saved.wallet &&
+      saved.wallet.toLowerCase() ===
+        wallet.toLowerCase()
+    ) {
+      sessionStorage.removeItem(
+        "questPassportTrustData"
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "Clear Trust Score cache failed:",
+      error
+    );
+  }
 }
 const PASSPORT_LEVEL_NAMES = {
   1: "New Identity",
@@ -3078,24 +3143,130 @@ const PASSPORT_LEVEL_NAMES = {
   10: "OPN Citizen",
 };
 
+function savePassportTrustData(wallet, trustData) {
+  if (!wallet || !trustData) return;
+
+  try {
+    sessionStorage.setItem(
+      "questPassportTrustData",
+      JSON.stringify({
+        wallet,
+        savedAt: Date.now(),
+        data: trustData,
+      })
+    );
+  } catch (error) {
+    console.warn(
+      "Save Passport Trust Data failed:",
+      error
+    );
+  }
+}
+function loadPassportTrustData(wallet) {
+  if (!wallet) return null;
+
+  try {
+    const raw =
+      sessionStorage.getItem(
+        "questPassportTrustData"
+      );
+
+    if (!raw) return null;
+
+    const saved =
+      JSON.parse(raw);
+
+    if (
+      !saved.wallet ||
+      saved.wallet.toLowerCase() !==
+        wallet.toLowerCase()
+    ) {
+      return null;
+    }
+
+    // Dùng cache tối đa 5 phút
+    if (
+      !saved.savedAt ||
+      Date.now() - saved.savedAt >
+        5 * 60 * 1000
+    ) {
+      return null;
+    }
+
+    return saved.data || null;
+  } catch (error) {
+    console.warn(
+      "Load Passport Trust Data failed:",
+      error
+    );
+
+    return null;
+  }
+}
 function getPassportLevelName(level) {
   return PASSPORT_LEVEL_NAMES[level] || "New Identity";
 }
 async function loadPassport() {
-  if (!passportContract || !userAddress) {
+  if (!passportContract || !userAddress || !signer) {
     return null;
   }
 
-  const result = await passportContract.getPassport(userAddress);
+  const passportInterfaceV7 = new ethers.Interface([
+    "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, uint64 displayId, bool active)",
+  ]);
 
-  return {
-    tokenId: Number(result.tokenId),
-    trustScore: Number(result.trustScore),
-    level: Number(result.level),
-    issuedAt: Number(result.issuedAt),
-    updatedAt: Number(result.updatedAt),
-    active: result.active,
-  };
+  const passportInterfaceV6 = new ethers.Interface([
+    "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, bool active)",
+  ]);
+
+  const callData =
+    passportInterfaceV7.encodeFunctionData(
+      "getPassport",
+      [userAddress]
+    );
+
+  const provider = signer.provider;
+
+  const rawResult = await provider.call({
+    to: PASSPORT_ADDRESS,
+    data: callData,
+  });
+
+  try {
+    const result =
+      passportInterfaceV7.decodeFunctionResult(
+        "getPassport",
+        rawResult
+      );
+
+    return {
+      tokenId: Number(result.tokenId),
+      trustScore: Number(result.trustScore),
+      level: Number(result.level),
+      issuedAt: Number(result.issuedAt),
+      updatedAt: Number(result.updatedAt),
+      displayId: Number(result.displayId),
+      active: result.active,
+    };
+  } catch (error) {
+    const result =
+      passportInterfaceV6.decodeFunctionResult(
+        "getPassport",
+        rawResult
+      );
+
+    const tokenId = Number(result.tokenId);
+
+    return {
+      tokenId,
+      trustScore: Number(result.trustScore),
+      level: Number(result.level),
+      issuedAt: Number(result.issuedAt),
+      updatedAt: Number(result.updatedAt),
+      displayId: tokenId,
+      active: result.active,
+    };
+  }
 }
 async function loadPassportQuestData() {
   if (
@@ -3203,12 +3374,36 @@ async function renderPassportCard() {
   setPassportCardState("analyzing");
 
   try {
-    const [passport, trustData] =
-      await Promise.all([
-        loadPassport(),
-        calculateWalletTrustScore(userAddress),
-      ]);
+    const passport =
+      await loadPassport();
 
+    const trustData =
+      await calculateWalletTrustScore(userAddress)
+        .catch((error) => {
+          console.warn("Trust Score fallback:", error);
+
+          const fallbackScore =
+            Number(passport?.trustScore) || 0;
+
+          return {
+            trustScore: fallbackScore,
+            level: getCalculatedPassportLevel(fallbackScore),
+            walletAgeDays: 0,
+            activeDays: 0,
+            transactionCount: 0,
+            contractsUsed: 0,
+            gasSpent: 0,
+            totalVolume: 0,
+            identityScore: 0,
+            activityScore: 0,
+            economicScore: 0,
+            diversityScore: 0,
+          };
+        });
+    savePassportTrustData(
+      userAddress,
+      trustData
+    );
     if (!passport || passport.tokenId === 0) {
       setPassportCardState("not-minted");
       return;
@@ -3218,7 +3413,9 @@ async function renderPassportCard() {
       await loadPassportQuestData();
 
     const passportId =
-      `OPN-${String(passport.tokenId).padStart(6, "0")}`;
+      `OPN-${String(
+        passport.displayId || passport.tokenId
+      ).padStart(8, "0")}`;
 
     const displayedTrustScore =
       trustData.trustScore;
@@ -3549,4 +3746,3 @@ window.mintQuestPassport = async function () {
     }
   }
 };
-setPassportCardState("disconnected");

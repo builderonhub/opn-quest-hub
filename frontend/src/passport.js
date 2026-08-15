@@ -28,7 +28,7 @@ const REWARD_NFT_ADDRESS =
 const PASSPORT_ABI = [
   "function passportOf(address wallet) view returns (uint256)",
   "function hasPassport(address wallet) view returns (bool)",
-  "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, bool active)",
+  "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, uint64 displayId, bool active)",
 ];
 
 const POINTS_ABI = [
@@ -468,7 +468,62 @@ const rewardNFTContract = new ethers.Contract(
   REWARD_NFT_ABI,
   provider
 );
+async function readPassport(wallet) {
+  const passportInterfaceV7 = new ethers.Interface([
+    "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, uint64 displayId, bool active)",
+  ]);
 
+  const passportInterfaceV6 = new ethers.Interface([
+    "function getPassport(address wallet) view returns (uint256 tokenId, uint16 trustScore, uint8 level, uint64 issuedAt, uint64 updatedAt, bool active)",
+  ]);
+
+  const callData =
+    passportInterfaceV7.encodeFunctionData(
+      "getPassport",
+      [wallet]
+    );
+
+  const rawResult = await provider.call({
+    to: PASSPORT_ADDRESS,
+    data: callData,
+  });
+
+  try {
+    const result =
+      passportInterfaceV7.decodeFunctionResult(
+        "getPassport",
+        rawResult
+      );
+
+    return {
+      tokenId: Number(result.tokenId),
+      trustScore: Number(result.trustScore),
+      level: Number(result.level),
+      issuedAt: Number(result.issuedAt),
+      updatedAt: Number(result.updatedAt),
+      displayId: Number(result.displayId),
+      active: result.active,
+    };
+  } catch (error) {
+    const result =
+      passportInterfaceV6.decodeFunctionResult(
+        "getPassport",
+        rawResult
+      );
+
+    const tokenId = Number(result.tokenId);
+
+    return {
+      tokenId,
+      trustScore: Number(result.trustScore),
+      level: Number(result.level),
+      issuedAt: Number(result.issuedAt),
+      updatedAt: Number(result.updatedAt),
+      displayId: tokenId,
+      active: result.active,
+    };
+  }
+}
 function setText(id, value) {
   const element = document.getElementById(id);
 
@@ -602,46 +657,60 @@ async function fetchAllTransactions(wallet) {
   let nextPageParams = null;
   let pageCount = 0;
 
-  while (pageCount < 200) {
+  const maxPages = 200;
+
+  while (pageCount < maxPages) {
     let url =
       `${IOPN_EXPLORER_API}/addresses/${wallet}/transactions`;
 
     if (nextPageParams) {
-      url +=
-        `?${new URLSearchParams(nextPageParams).toString()}`;
+      const params =
+        new URLSearchParams(nextPageParams).toString();
+
+      url += `?${params}`;
     }
 
-    const response = await fetch(url);
+    const response =
+      await fetch(url);
 
     if (!response.ok) {
-      throw new Error(
-        `Explorer request failed: HTTP ${response.status}`
+      console.warn(
+        "Explorer request failed:",
+        response.status
       );
+
+      break;
     }
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    transactions = transactions.concat(
-      Array.isArray(data.items) ? data.items : []
-    );
+    const items =
+      Array.isArray(data.items)
+        ? data.items
+        : [];
 
-    pageCount++;
+    transactions =
+      transactions.concat(items);
 
     if (!data.next_page_params) {
       break;
     }
 
-    nextPageParams = data.next_page_params;
+    nextPageParams =
+      data.next_page_params;
+
+    pageCount++;
   }
 
   return transactions;
 }
 
 async function calculateTrustScore(wallet) {
-  const transactions =
+  const txs =
     await fetchAllTransactions(wallet);
 
-  if (!transactions.length) {
+  if (!txs.length) {
     return {
       trustScore: 0,
       level: 1,
@@ -655,117 +724,148 @@ async function calculateTrustScore(wallet) {
       activityScore: 0,
       economicScore: 0,
       diversityScore: 0,
+      transactions: [],
     };
   }
 
-  const timestamps = transactions
-    .map((transaction) => transaction.timestamp)
+  const timestamps = txs
+    .map((tx) => tx.timestamp)
     .filter(Boolean)
     .map((timestamp) => new Date(timestamp))
     .filter((date) => !Number.isNaN(date.getTime()));
 
   if (!timestamps.length) {
-    throw new Error("No valid transaction timestamps");
+    return {
+      trustScore: 0,
+      level: 1,
+      walletAgeDays: 0,
+      activeDays: 0,
+      transactionCount: 0,
+      contractsUsed: 0,
+      gasSpent: 0,
+      totalVolume: 0,
+      identityScore: 0,
+      activityScore: 0,
+      economicScore: 0,
+      diversityScore: 0,
+      transactions: txs,
+    };
   }
 
-  const firstTransactionTime = Math.min(
-    ...timestamps.map((date) => date.getTime())
-  );
+  const firstTxDate =
+    new Date(
+      Math.min(
+        ...timestamps.map((date) => date.getTime())
+      )
+    );
 
-  const walletAgeDays = Math.max(
-    0,
+  const walletAgeDays =
     Math.floor(
-      (Date.now() - firstTransactionTime) /
-      (1000 * 60 * 60 * 24)
-    )
-  );
+      (Date.now() - firstTxDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
 
-  const activeDays = new Set(
-    timestamps.map((date) =>
-      date.toISOString().slice(0, 10)
-    )
-  ).size;
+  const activeDateSet =
+    new Set(
+      timestamps.map((date) =>
+        date.toISOString().split("T")[0]
+      )
+    );
 
-  const transactionCount = transactions.length;
+  const activeDays =
+    activeDateSet.size;
 
-  const destinationSet = new Set();
+  const transactionCount =
+    txs.length;
+
+  const contractSet =
+    new Set();
 
   let gasSpent = 0;
   let totalVolume = 0;
 
-  for (const transaction of transactions) {
-    const destination =
-      transaction.to?.hash ||
-      transaction.to_address_hash ||
-      transaction.to;
-
-    if (typeof destination === "string") {
-      destinationSet.add(destination.toLowerCase());
+  for (const tx of txs) {
+    if (tx.to?.hash) {
+      contractSet.add(
+        tx.to.hash.toLowerCase()
+      );
     }
 
-    const fee = Number(
-      transaction.fee?.value ??
-      transaction.fee ??
-      transaction.gas_fee ??
-      0
-    );
-
-    const value = Number(transaction.value ?? 0);
-
-    if (Number.isFinite(fee)) {
-      gasSpent += fee / 1e18;
+    if (tx.fee?.value) {
+      gasSpent +=
+        Number(tx.fee.value) / 1e18;
     }
 
-    if (Number.isFinite(value)) {
-      totalVolume += value / 1e18;
+    if (tx.value) {
+      totalVolume +=
+        Number(tx.value) / 1e18;
     }
   }
 
-  const contractsUsed = destinationSet.size;
+  const contractsUsed =
+    contractSet.size;
 
-  const identityScore = clamp(
-    Math.round(
-      logScore(walletAgeDays, 365, 180) +
-      logScore(activeDays, 180, 70)
-    ),
-    0,
-    250
-  );
+  const walletAgeScore =
+    logScore(walletAgeDays, 365, 180);
 
-  const activityScore = clamp(
-    Math.round(
-      logScore(activeDays, 300, 200) +
-      logScore(transactionCount, 1000, 150)
-    ),
-    0,
-    350
-  );
+  const consistencyScore =
+    logScore(activeDays, 180, 70);
 
-  const economicScore = clamp(
-    Math.round(
-      logScore(totalVolume, 5000, 180) +
-      logScore(gasSpent, 10, 120)
-    ),
-    0,
-    300
-  );
+  const identityScore =
+    clamp(
+      Math.round(
+        walletAgeScore + consistencyScore
+      ),
+      0,
+      250
+    );
 
-  const diversityScore = clamp(
-    Math.round(
-      logScore(contractsUsed, 60, 100)
-    ),
-    0,
-    100
-  );
+  const activeDaysScore =
+    logScore(activeDays, 300, 200);
 
-  const trustScore = clamp(
-    identityScore +
-      activityScore +
-      economicScore +
-      diversityScore,
-    0,
-    1000
-  );
+  const transactionScore =
+    logScore(transactionCount, 1000, 150);
+
+  const activityScore =
+    clamp(
+      Math.round(
+        activeDaysScore + transactionScore
+      ),
+      0,
+      350
+    );
+
+  const volumeScore =
+    logScore(totalVolume, 5000, 180);
+
+  const gasScore =
+    logScore(gasSpent, 10, 120);
+
+  const economicScore =
+    clamp(
+      Math.round(volumeScore + gasScore),
+      0,
+      300
+    );
+
+  const diversityScore =
+    clamp(
+      Math.round(
+        logScore(contractsUsed, 60, 100)
+      ),
+      0,
+      100
+    );
+
+  const trustScore =
+    clamp(
+      identityScore +
+        activityScore +
+        economicScore +
+        diversityScore,
+      0,
+      1000
+    );
 
   return {
     trustScore,
@@ -780,6 +880,7 @@ async function calculateTrustScore(wallet) {
     activityScore,
     economicScore,
     diversityScore,
+    transactions: txs,
   };
 }
 
@@ -831,6 +932,43 @@ function renderScoreCategory(
       `${Math.min((score / maximum) * 100, 100)}%`;
   }
 }
+function loadSavedTrustData(wallet) {
+  try {
+    const raw =
+      sessionStorage.getItem(
+        "questPassportTrustData"
+      );
+
+    if (!raw) return null;
+
+    const saved =
+      JSON.parse(raw);
+
+    if (
+      !saved.wallet ||
+      saved.wallet.toLowerCase() !==
+        wallet.toLowerCase()
+    ) {
+      return null;
+    }
+
+    if (
+      !saved.savedAt ||
+      Date.now() - saved.savedAt > 5 * 60 * 1000
+    ) {
+      return null;
+    }
+
+    return saved.data || null;
+  } catch (error) {
+    console.warn(
+      "Load saved Trust Data failed:",
+      error
+    );
+
+    return null;
+  }
+}
 
 async function loadPassportPage() {
   const parameters =
@@ -843,15 +981,33 @@ async function loadPassportPage() {
     !walletParameter ||
     !ethers.isAddress(walletParameter)
   ) {
-    showError("The Passport URL contains an invalid wallet.");
+    showError(
+      "The Passport URL contains an invalid wallet."
+    );
     return;
   }
 
-  const wallet = ethers.getAddress(walletParameter);
+  const wallet =
+    ethers.getAddress(walletParameter);
 
   try {
+    const passport =
+      await readPassport(wallet);
+
+    const tokenId =
+      Number(passport.tokenId);
+
+    if (tokenId === 0) {
+      showError(
+        "This wallet has not minted a Passport."
+      );
+      return;
+    }
+
+    const savedTrustData =
+      loadSavedTrustData(wallet);
+
     const [
-      passport,
       trustData,
       baseQuestPointsRaw,
       stakingPointsRaw,
@@ -861,23 +1017,58 @@ async function loadPassportPage() {
       silverClaimed,
       goldClaimed,
     ] = await Promise.all([
-      passportContract.getPassport(wallet),
-      calculateTrustScore(wallet),
+      (
+        savedTrustData
+          ? Promise.resolve(savedTrustData)
+          : calculateTrustScore(wallet)
+      ).catch((error) => {
+        console.warn(
+          "Trust Score fallback:",
+          error
+        );
+
+        const fallbackScore =
+          Number(passport.trustScore) || 0;
+
+        return {
+          trustScore: fallbackScore,
+          level:
+            getPassportLevel(
+              fallbackScore
+            ),
+          walletAgeDays: 0,
+          activeDays: 0,
+          transactionCount: 0,
+          contractsUsed: 0,
+          gasSpent: 0,
+          totalVolume: 0,
+          identityScore: 0,
+          activityScore: 0,
+          economicScore: 0,
+          diversityScore: 0,
+        };
+      }),
+
       pointsContract.getPoints(wallet),
       stakingContract.claimedPoints(wallet),
       pointsContract.getCheckInStreak(wallet),
       stakingContract.stakedAmount(wallet),
-      rewardNFTContract.hasClaimedNFT(wallet, 1),
-      rewardNFTContract.hasClaimedNFT(wallet, 2),
-      rewardNFTContract.hasClaimedNFT(wallet, 3),
+
+      rewardNFTContract.hasClaimedNFT(
+        wallet,
+        1
+      ),
+
+      rewardNFTContract.hasClaimedNFT(
+        wallet,
+        2
+      ),
+
+      rewardNFTContract.hasClaimedNFT(
+        wallet,
+        3
+      ),
     ]);
-
-    const tokenId = Number(passport.tokenId);
-
-    if (tokenId === 0) {
-      showError("This wallet has not minted a Passport.");
-      return;
-    }
 
     const baseQuestPoints =
       Number(baseQuestPointsRaw);
@@ -889,7 +1080,10 @@ async function loadPassportPage() {
       baseQuestPoints + stakingPoints;
 
     const passportId =
-      `OPN-${String(tokenId).padStart(6, "0")}`;
+      `OPN-${String(
+        passport.displayId ||
+        passport.tokenId
+      ).padStart(8, "0")}`;
 
     const levelName =
       LEVEL_NAMES[trustData.level] || "New Identity";
